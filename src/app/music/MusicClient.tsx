@@ -2114,6 +2114,21 @@ export default function MusicClient({ children: _children }: { children?: React.
     }
   };
 
+  const seekToLyric = (line: LyricLine, index: number) => {
+    const audio = audioRef.current;
+    if (!audio || !Number.isFinite(line.time)) return;
+
+    const maxSeekTime =
+      Number.isFinite(audio.duration) && audio.duration > 0
+        ? Math.max(0, audio.duration - 0.25)
+        : line.time;
+    const nextTime = Math.max(0, Math.min(line.time, maxSeekTime));
+
+    audio.currentTime = nextTime;
+    setCurrentTime(nextTime);
+    setCurrentLyricIndex(index);
+  };
+
   // 音量调节
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseInt(e.target.value);
@@ -2884,10 +2899,12 @@ export default function MusicClient({ children: _children }: { children?: React.
                 {lyrics.length > 0 ? (
                   <div className="space-y-4 md:space-y-5">
                     {lyrics.map((line, index) => (
-                      <div
+                      <button
                         key={index}
+                        type="button"
                         data-index={index}
-                        className={`text-center transition-all duration-300 ${
+                        onClick={() => seekToLyric(line, index)}
+                        className={`block w-full appearance-none border-0 bg-transparent p-0 text-center transition-all duration-300 outline-none ring-0 focus:outline-none focus:ring-0 active:outline-none active:ring-0 ${
                           index === currentLyricIndex
                             ? 'text-white text-lg md:text-xl lg:text-2xl font-bold scale-110'
                             : index === currentLyricIndex - 1 || index === currentLyricIndex + 1
@@ -2907,7 +2924,7 @@ export default function MusicClient({ children: _children }: { children?: React.
                             {line.translation}
                           </div>
                         )}
-                      </div>
+                      </button>
                     ))}
                   </div>
                 ) : (
@@ -3615,6 +3632,7 @@ export default function MusicClient({ children: _children }: { children?: React.
             setPipMinimized(minimized);
             localStorage.setItem('lyricsPiPMinimized', minimized.toString());
           }}
+          onLyricSeek={seekToLyric}
           onClose={() => setShowPiPLyrics(false)}
         />
       )}

@@ -128,11 +128,12 @@ const keys = {
   home: { key: 'Home', code: 'Home', keyCode: 36 },
 };
 
-function fireRemoteKey(name: keyof typeof keys) {
+function fireRemoteKey(name: keyof typeof keys, repeat = false) {
   const cfg = keys[name];
   const eventInit: KeyboardEventInit = {
     key: cfg.key,
     code: cfg.code,
+    repeat,
     bubbles: true,
     cancelable: true,
   };
@@ -157,20 +158,50 @@ function fireRemoteKey(name: keyof typeof keys) {
 function RemoteButton({
   label,
   onClick,
+  onRepeat,
+  repeatable = false,
   className = '',
   children,
 }: {
   label: string;
   onClick: () => void;
+  onRepeat?: () => void;
+  repeatable?: boolean;
   className?: string;
   children: React.ReactNode;
 }) {
+  const delayRef = useRef<number | null>(null);
+  const intervalRef = useRef<number | null>(null);
+
+  const clearRepeat = () => {
+    if (delayRef.current) window.clearTimeout(delayRef.current);
+    if (intervalRef.current) window.clearInterval(intervalRef.current);
+    delayRef.current = null;
+    intervalRef.current = null;
+  };
+
+  useEffect(() => clearRepeat, []);
+
   return (
     <button
       type='button'
       aria-label={label}
       title={label}
-      onClick={onClick}
+      onClick={() => {
+        if (!repeatable) onClick();
+      }}
+      onPointerDown={(event) => {
+        event.preventDefault();
+        if (!repeatable) return;
+        onClick();
+        clearRepeat();
+        delayRef.current = window.setTimeout(() => {
+          intervalRef.current = window.setInterval(onRepeat || onClick, 130);
+        }, 360);
+      }}
+      onPointerUp={clearRepeat}
+      onPointerCancel={clearRepeat}
+      onPointerLeave={clearRepeat}
       onMouseDown={(event) => event.preventDefault()}
       className={`flex cursor-pointer items-center justify-center rounded-2xl border border-white/10 bg-white/10 text-white shadow-lg shadow-black/30 outline-none transition hover:bg-white/20 active:scale-95 focus-visible:ring-4 focus-visible:ring-rose-500/70 ${className}`}
     >
@@ -267,23 +298,23 @@ export default function TVVirtualRemote() {
         </RemoteButton>
 
         <div />
-        <RemoteButton label='上' onClick={() => fireRemoteKey('up')} className='h-16'>
+        <RemoteButton label='上' onClick={() => fireRemoteKey('up')} onRepeat={() => fireRemoteKey('up', true)} repeatable className='h-16'>
           <ChevronUp className='h-9 w-9' />
         </RemoteButton>
         <div />
 
-        <RemoteButton label='左' onClick={() => fireRemoteKey('left')} className='h-16'>
+        <RemoteButton label='左' onClick={() => fireRemoteKey('left')} onRepeat={() => fireRemoteKey('left', true)} repeatable className='h-16'>
           <ChevronLeft className='h-9 w-9' />
         </RemoteButton>
         <RemoteButton label='确认' onClick={() => fireRemoteKey('ok')} className='h-16 rounded-full bg-white text-black hover:bg-slate-200'>
           <CornerDownLeft className='h-8 w-8' />
         </RemoteButton>
-        <RemoteButton label='右' onClick={() => fireRemoteKey('right')} className='h-16'>
+        <RemoteButton label='右' onClick={() => fireRemoteKey('right')} onRepeat={() => fireRemoteKey('right', true)} repeatable className='h-16'>
           <ChevronRight className='h-9 w-9' />
         </RemoteButton>
 
         <div />
-        <RemoteButton label='下' onClick={() => fireRemoteKey('down')} className='h-16'>
+        <RemoteButton label='下' onClick={() => fireRemoteKey('down')} onRepeat={() => fireRemoteKey('down', true)} repeatable className='h-16'>
           <ChevronDown className='h-9 w-9' />
         </RemoteButton>
         <div />

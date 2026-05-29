@@ -11,10 +11,41 @@ declare global {
 }
 
 function getSourceType(url: string): 'm3u8' | 'flv' | 'native' {
-  const lower = url.toLowerCase().split('?')[0];
-  if (lower.includes('.m3u8') || lower.includes('.m3u')) return 'm3u8';
-  if (lower.endsWith('.flv') || url.toLowerCase().includes('.flv?')) return 'flv';
+  const lower = url.toLowerCase();
+  const path = lower.split('?')[0];
+  // 代理地址通常是 /api/proxy/vod/m3u8?url=...，真实 m3u8 在 query 中；
+  // 不能只看 ? 前路径，否则会被当成 native，浏览器只请求 index.m3u8 而不会交给 hls.js 拉 ts。
+  if (path.includes('.m3u8') || path.includes('.m3u') || lower.includes('/m3u8') || lower.includes('m3u8') || lower.includes('.m3u')) return 'm3u8';
+  if (path.endsWith('.flv') || lower.includes('.flv?')) return 'flv';
   return 'native';
+}
+
+function filterAdsFromM3U8(m3u8Content: string): string {
+  if (!m3u8Content) return '';
+  const adKeywords = ['sponsor', '/ad/', '/ads/', 'advert', 'advertisement', '/adjump', 'redtraffic'];
+  const lines = m3u8Content.split('\n');
+  const filteredLines: string[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+    if (line.includes('#EXT-X-DISCONTINUITY')) {
+      i++;
+      continue;
+    }
+    if (line.includes('#EXTINF:') && i + 1 < lines.length) {
+      const nextLine = lines[i + 1];
+      const isAd = adKeywords.some((keyword) => nextLine.toLowerCase().includes(keyword));
+      if (isAd) {
+        i += 2;
+        continue;
+      }
+    }
+    filteredLines.push(line);
+    i++;
+  }
+
+  return filteredLines.join('\n');
 }
 
 export default function TVNativeVideo({
@@ -23,6 +54,11 @@ export default function TVNativeVideo({
   live = false,
   title,
   onTime,
+  onError: onPlaybackError,
+  onPlayingChange,
+  adFilterEnabled = false,
+  playbackRate = 1,
+  startTime = 0,
   command,
   className = '',
 }: {
@@ -31,13 +67,33 @@ export default function TVNativeVideo({
   live?: boolean;
   title?: string;
   onTime?: (current: number, duration: number) => void;
+  onError?: () => void;
+  onPlayingChange?: (playing: boolean) => void;
+  adFilterEnabled?: boolean;
+  playbackRate?: number;
+  startTime?: number;
   command?: number;
   className?: string;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const onTimeRef = useRef<typeof onTime>(onTime);
+  const onPlaybackErrorRef = useRef<typeof onPlaybackError>(onPlaybackError);
+  const onPlayingChangeRef = useRef<typeof onPlayingChange>(onPlayingChange);
   const [loading, setLoading] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    onTimeRef.current = onTime;
+  }, [onTime]);
+
+  useEffect(() => {
+    onPlaybackErrorRef.current = onPlaybackError;
+  }, [onPlaybackError]);
+
+  useEffect(() => {
+    onPlayingChangeRef.current = onPlayingChange;
+  }, [onPlayingChange]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -78,11 +134,32 @@ export default function TVNativeVideo({
           if (disposed) return;
           const Hls = HlsModule.default;
           if (Hls.isSupported()) {
+            const CustomLoader = adFilterEnabled
+              ? class TVAdFilterLoader extends Hls.DefaultConfig.loader {
+                  constructor(config: any) {
+                    super(config);
+                    const load = this.load.bind(this);
+                    this.load = (context: any, config: any, callbacks: any) => {
+                      if (context?.type === 'manifest' || context?.type === 'level') {
+                        const onSuccess = callbacks.onSuccess;
+                        callbacks.onSuccess = (response: any, stats: any, context: any, networkDetails: any) => {
+                          if (typeof response?.data === 'string') {
+                            response.data = filterAdsFromM3U8(response.data);
+                          }
+                          return onSuccess(response, stats, context, networkDetails);
+                        };
+                      }
+                      load(context, config, callbacks);
+                    };
+                  }
+                }
+              : undefined;
             const hls = new Hls({
               enableWorker: true,
               lowLatencyMode: live,
               backBufferLength: live ? 10 : 30,
               maxBufferLength: live ? 18 : 45,
+              ...(CustomLoader ? { loader: CustomLoader } : {}),
             });
             hls.loadSource(url);
             hls.attachMedia(videoEl);
@@ -108,6 +185,7 @@ export default function TVNativeVideo({
 
         videoEl.setAttribute('playsinline', 'true');
         videoEl.setAttribute('webkit-playsinline', 'true');
+        videoEl.playbackRate = playbackRate;
         videoEl.muted = false;
         playSafely();
       } catch (err) {
@@ -119,15 +197,38 @@ export default function TVNativeVideo({
 
     attach();
 
-    const onLoaded = () => setLoading(false);
-    const onPlay = () => setPlaying(true);
-    const onPause = () => setPlaying(false);
+    let seekedInitialTime = false;
+    const seekToInitialTime = () => {
+      if (live || seekedInitialTime || !startTime || startTime <= 1) return;
+      const duration = videoEl.duration || 0;
+      const safeTime = duration > 30 ? Math.min(startTime, Math.max(0, duration - 8)) : startTime;
+      try {
+        videoEl.currentTime = safeTime;
+        seekedInitialTime = true;
+      } catch {
+        // ignore unsupported seek state
+      }
+    };
+    const onLoaded = () => {
+      seekToInitialTime();
+      setLoading(false);
+    };
+    const onPlay = () => {
+      setPlaying(true);
+      onPlayingChangeRef.current?.(true);
+    };
+    const onPause = () => {
+      setPlaying(false);
+      onPlayingChangeRef.current?.(false);
+    };
     const onError = () => {
       setLoading(false);
       setError('视频加载失败，请尝试切换线路或频道');
+      onPlaybackErrorRef.current?.();
     };
-    const onTimeUpdate = () => onTime?.(videoEl.currentTime || 0, videoEl.duration || 0);
+    const onTimeUpdate = () => onTimeRef.current?.(videoEl.currentTime || 0, videoEl.duration || 0);
 
+    videoEl.addEventListener('loadedmetadata', seekToInitialTime);
     videoEl.addEventListener('loadeddata', onLoaded);
     videoEl.addEventListener('canplay', onLoaded);
     videoEl.addEventListener('play', onPlay);
@@ -137,6 +238,7 @@ export default function TVNativeVideo({
 
     return () => {
       disposed = true;
+      videoEl.removeEventListener('loadedmetadata', seekToInitialTime);
       videoEl.removeEventListener('loadeddata', onLoaded);
       videoEl.removeEventListener('canplay', onLoaded);
       videoEl.removeEventListener('play', onPlay);
@@ -145,7 +247,12 @@ export default function TVNativeVideo({
       videoEl.removeEventListener('timeupdate', onTimeUpdate);
       cleanup();
     };
-  }, [url, live, onTime]);
+  }, [url, live, startTime, adFilterEnabled, playbackRate]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video) video.playbackRate = playbackRate;
+  }, [playbackRate]);
 
   const toggle = () => {
     const video = videoRef.current;

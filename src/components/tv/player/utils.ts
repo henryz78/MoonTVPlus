@@ -14,7 +14,24 @@ export async function fetchTVDetail(params: {
     const res = await fetch(`/api/source-detail?${qs.toString()}`, { cache: 'no-store' });
     if (!res.ok) throw new Error('获取视频详情失败');
     const detail = (await res.json()) as SearchResult;
-    return { detail, sources: [detail] };
+    let sources: SearchResult[] = [detail];
+    const searchTitle = title || detail.title;
+    if (searchTitle) {
+      try {
+        const searchRes = await fetch(`/api/search?q=${encodeURIComponent(searchTitle)}`, { cache: 'no-store' });
+        if (searchRes.ok) {
+          const data = await searchRes.json();
+          const list = (data.results || []) as SearchResult[];
+          sources = [
+            detail,
+            ...list.filter((item) => !(item.source === detail.source && item.id === detail.id)),
+          ];
+        }
+      } catch {
+        // 换源搜索失败不影响当前播放
+      }
+    }
+    return { detail, sources };
   }
 
   if (!title) throw new Error('缺少片名');

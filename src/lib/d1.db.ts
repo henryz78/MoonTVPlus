@@ -44,7 +44,10 @@ export class D1Storage implements IStorage {
   private _schemaReady: Promise<void> | null = null;
   private get schemaReady(): Promise<void> {
     if (!this._schemaReady) {
-      this._schemaReady = this.ensureMangaShelfColumns();
+      this._schemaReady = this.ensureMangaShelfColumns().catch((err) => {
+        this._schemaReady = null;
+        throw err;
+      });
     }
     return this._schemaReady;
   }

@@ -38,15 +38,16 @@ export async function getDuanjuSources(): Promise<DuanjuSource[]> {
     if (cachedData !== null) {
       // 有缓存，直接返回（getGlobalValue 已经处理了序列化问题）
       const cachedSources: DuanjuSource[] = cachedData ? JSON.parse(cachedData) : [];
-      // 旧版本缓存只保存采集源，不包含短剧分类 ID。缺少 typeId 时自动重建缓存。
+      // 只有当缓存中存在短剧源，并且都包含 typeId 时才使用缓存。
+      // 避免由于网络异常或初始未配置时缓存了空数组 [] 而导致永远无法更新。
       if (
-        cachedSources.length === 0 ||
+        cachedSources.length > 0 &&
         cachedSources.every((source) => source.typeId)
       ) {
         return cachedSources;
       }
 
-      console.log('短剧视频源缓存缺少分类信息，重新筛选...');
+      console.log('短剧视频源缓存为空或缺少分类信息，重新筛选...');
     }
 
     // 没有缓存，开始筛选

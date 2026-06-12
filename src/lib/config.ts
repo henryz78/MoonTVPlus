@@ -3,6 +3,7 @@
 import { db } from '@/lib/db';
 
 import { AdminConfig } from './admin.types';
+import { DEFAULT_AI_SYSTEM_PROMPT } from './ai-defaults';
 
 const BUILTIN_DANMAKU_API_BASE = 'https://mtvpls-danmu.netlify.app/87654321';
 const DEFAULT_LIVE_REFRESH_INTERVAL_HOURS = 12;
@@ -690,6 +691,28 @@ export function configSelfCheck(adminConfig: AdminConfig): AdminConfig {
     seenLiveKeys.add(live.key);
     return true;
   });
+
+  if (!adminConfig.AIConfig) {
+    adminConfig.AIConfig = {
+      Enabled: false,
+      Provider: 'custom',
+      EnableDecisionModel: false,
+      EnableWebSearch: false,
+      EnableHomepageEntry: true,
+      EnableVideoCardEntry: true,
+      EnablePlayPageEntry: true,
+      EnableAIComments: false,
+      EnableStreaming: true,
+      SystemPrompt: DEFAULT_AI_SYSTEM_PROMPT,
+    };
+  } else {
+    if (!adminConfig.AIConfig.SystemPrompt?.trim()) {
+      adminConfig.AIConfig.SystemPrompt = DEFAULT_AI_SYSTEM_PROMPT;
+    }
+    if (adminConfig.AIConfig.EnableStreaming === undefined) {
+      adminConfig.AIConfig.EnableStreaming = true;
+    }
+  }
 
   // Emby配置迁移：将旧格式迁移到新格式
   if (adminConfig.EmbyConfig) {

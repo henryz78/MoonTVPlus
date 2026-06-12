@@ -3,6 +3,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import {
+  DEFAULT_AI_SYSTEM_PROMPT,
+  renderAISystemPrompt,
+} from '@/lib/ai-defaults';
+import {
   orchestrateDataSources,
   VideoContext,
 } from '@/lib/ai-orchestrator';
@@ -267,12 +271,15 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    console.log('🎯 数据协调完成, systemPrompt长度:', orchestrationResult.systemPrompt.length);
+    console.log('🎯 数据协调完成, context长度:', orchestrationResult.systemPrompt.length);
 
     // 5. 构建消息列表
-    const systemPrompt = aiConfig.SystemPrompt
-      ? `${aiConfig.SystemPrompt}\n\n${orchestrationResult.systemPrompt}`
-      : orchestrationResult.systemPrompt;
+    const configuredSystemPrompt = renderAISystemPrompt(
+      aiConfig.SystemPrompt?.trim() || DEFAULT_AI_SYSTEM_PROMPT
+    );
+    const systemPrompt = orchestrationResult.systemPrompt.trim()
+      ? `${configuredSystemPrompt}\n\n${orchestrationResult.systemPrompt}`
+      : configuredSystemPrompt;
 
     const messages: ChatMessage[] = [
       { role: 'user', content: systemPrompt },

@@ -694,28 +694,8 @@ export async function orchestrateDataSources(
     }
   }
 
-  // 4. 构建系统提示词
-  // 获取UTC+8时区的日期
-  const now = new Date();
-  const utc8Date = new Date(now.getTime() + 8 * 60 * 60 * 1000);
-  const today = utc8Date.toISOString().split('T')[0]; // YYYY-MM-DD格式
-  let systemPrompt = `你是 MoonTVPlus 的 AI 影视助手，专门帮助用户发现和了解影视内容。
-
-## 当前日期
-${today}
-
-## 你的能力
-- 提供影视推荐（基于豆瓣热门榜单和TMDB数据）
-- 回答影视相关问题（剧情、演员、评分等）
-- 搜索最新影视资讯（如果启用了联网搜索）
-
-## 回复要求
-1. 语言风格：友好、专业、简洁
-2. 信息来源：优先使用提供的数据，诚实告知数据不足
-3. 推荐理由：说明为什么值得看，包括评分、类型、特色等
-4. 格式清晰：使用分段、列表等让内容易读
-
-`;
+  // 4. 构建动态资料上下文。AI 的身份和回复规则只来自后台配置的 SystemPrompt。
+  let systemPrompt = '';
 
   // 添加联网搜索结果
   if (webSearchData && config?.webSearchProvider) {
@@ -801,16 +781,7 @@ ${today}
     systemPrompt += '\n';
   }
 
-  systemPrompt += `\n## 数据来源优先级
-1. 如果有联网搜索结果，优先使用其最新信息
-2. 豆瓣数据提供中文评价和评分（更适合中文用户）
-3. TMDB数据更国际化，提供关键词和相似推荐
-4. 如果多个数据源有冲突，以联网搜索为准
-5. 如果数据不足以回答问题，诚实告知用户
-
-现在请回答用户的问题。`;
-
-  console.log('📝 生成的系统提示词长度:', systemPrompt.length);
+  console.log('📝 生成的动态资料上下文长度:', systemPrompt.length);
 
   return {
     systemPrompt,

@@ -2,8 +2,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
+import { DEFAULT_AI_SYSTEM_PROMPT } from '@/lib/ai-defaults';
 import { getAuthInfoFromCookie } from '@/lib/auth';
-import { getConfig } from '@/lib/config';
+import { getConfig, setCachedConfig } from '@/lib/config';
 import { db } from '@/lib/db';
 
 export const runtime = 'nodejs';
@@ -184,7 +185,9 @@ export async function POST(request: NextRequest) {
       EnableAIComments,
       Temperature,
       MaxTokens,
-      SystemPrompt,
+      SystemPrompt: SystemPrompt?.trim()
+        ? SystemPrompt
+        : DEFAULT_AI_SYSTEM_PROMPT,
       EnableStreaming,
       DefaultMessageNoVideo,
       DefaultMessageWithVideo,
@@ -192,6 +195,7 @@ export async function POST(request: NextRequest) {
 
     // 写入数据库
     await db.saveAdminConfig(adminConfig);
+    await setCachedConfig(adminConfig);
 
     return NextResponse.json(
       { ok: true },

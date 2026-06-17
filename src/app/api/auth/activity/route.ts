@@ -33,7 +33,8 @@ export async function POST(request: NextRequest) {
 
   const touched = await touchRefreshTokenLastUsed(
     authInfo.username,
-    authInfo.tokenId
+    authInfo.tokenId,
+    authInfo.refreshToken
   );
 
   if (!touched) {

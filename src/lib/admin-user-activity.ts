@@ -158,6 +158,10 @@ async function getLastActiveAt(username: string): Promise<number | null> {
   }, null);
 }
 
+function matchesUsernameSearch(username: string, search: string) {
+  return !search || username.toLowerCase().includes(search.toLowerCase());
+}
+
 async function buildOverviewRow(
   user: UserActivityUser
 ): Promise<UserActivityOverviewRow> {
@@ -202,14 +206,39 @@ async function listVisibleUsers(input: {
     process.env.USERNAME,
     input.search
   );
-  const visibleUsers = all.users.filter((user) =>
-    canViewTargetUsername(
-      input.operatorRole,
-      input.operatorUsername,
-      user.username,
-      user.role
+  const visibleUsers: UserActivityUser[] = all.users
+    .filter((user) =>
+      canViewTargetUsername(
+        input.operatorRole,
+        input.operatorUsername,
+        user.username,
+        user.role
+      )
     )
-  );
+    .map((user) => ({
+      username: user.username,
+      role: user.role,
+      banned: user.banned,
+      created_at: user.created_at,
+    }));
+  if (
+    matchesUsernameSearch(input.operatorUsername, input.search) &&
+    !visibleUsers.some((user) => user.username === input.operatorUsername)
+  ) {
+    const self = await getTargetUser(input.operatorUsername);
+    if (
+      self &&
+      canViewTargetUsername(
+        input.operatorRole,
+        input.operatorUsername,
+        self.username,
+        self.role
+      )
+    ) {
+      visibleUsers.unshift(self);
+    }
+  }
+
   const start = (input.page - 1) * input.limit;
   return {
     users: visibleUsers.slice(start, start + input.limit),

@@ -90,7 +90,11 @@ describe('POST /api/auth/activity', () => {
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ ok: true });
     expect(response.headers).toEqual({ 'Cache-Control': 'no-store' });
-    expect(touchRefreshTokenLastUsed).toHaveBeenCalledWith('alice', 'token-1');
+    expect(touchRefreshTokenLastUsed).toHaveBeenCalledWith(
+      'alice',
+      'token-1',
+      'refresh-1'
+    );
   });
 
   it('returns unauthorized when the token record cannot be touched', async () => {

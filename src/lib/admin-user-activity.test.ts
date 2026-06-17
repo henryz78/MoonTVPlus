@@ -216,6 +216,32 @@ describe('admin user activity helpers', () => {
     ]);
   });
 
+  it('keeps the admin self row visible when it is missing from the fetched user batch', async () => {
+    (db.getUserInfoV2 as jest.Mock).mockImplementation(async (username) => ({
+      role: username === 'admin' ? 'admin' : 'user',
+      banned: false,
+      created_at: 1,
+    }));
+    (db.getUserListV2 as jest.Mock).mockResolvedValue({
+      users: [user('owner', 'owner'), user('alice', 'user')],
+      total: 1001,
+    });
+    (db.getAllPlayRecords as jest.Mock).mockResolvedValue({});
+    (getUserDevices as jest.Mock).mockResolvedValue([]);
+
+    const result = await getUserActivityOverview({
+      operatorUsername: 'admin',
+      page: 1,
+      limit: 20,
+      search: '',
+    });
+
+    expect(result.users.map((item) => item.username).sort()).toEqual([
+      'admin',
+      'alice',
+    ]);
+  });
+
   it('returns detail records sorted newest first with user summary', async () => {
     (db.getUserInfoV2 as jest.Mock).mockResolvedValue({
       role: 'user',

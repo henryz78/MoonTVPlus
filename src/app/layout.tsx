@@ -6,6 +6,7 @@ import { cookies } from 'next/headers';
 
 import './globals.css';
 
+import ActivityPing from '@/components/ActivityPing';
 import { parseAuthInfo } from '@/lib/auth';
 import { getConfig } from '@/lib/config';
 import { getUserFeatureAccess } from '@/lib/permissions';
@@ -332,6 +333,7 @@ export default async function RootLayout({
           <TopProgressBar />
           <RouteScrollReset />
           <TokenRefreshManager />
+          <ActivityPing />
           <SiteProvider
             siteName={siteName}
             announcement={announcement}

@@ -77,12 +77,17 @@ function formatDateTime(timestamp: number) {
 
 function formatActivity(lastActiveAt: number | null, isOnline?: boolean) {
   if (!lastActiveAt) return '从未活跃';
-  const diff = Date.now() - lastActiveAt;
+  const diff = Math.max(0, Date.now() - lastActiveAt);
   if (isOnline || diff <= 2 * 60 * 1000) return '在线';
-  if (diff <= 10 * 60 * 1000) {
-    return `${Math.max(1, Math.floor(diff / 60_000))} 分钟前`;
-  }
-  return formatDateTime(lastActiveAt);
+  const minutes = Math.max(1, Math.floor(diff / 60_000));
+  if (minutes < 60) return `${minutes} 分钟前在线`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} 小时前在线`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days} 天前在线`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months} 个月前在线`;
+  return `${Math.max(1, Math.floor(days / 365))} 年前在线`;
 }
 
 function formatProgress(record: DetailRecord) {
@@ -319,6 +324,12 @@ export default function UserActivityPage() {
                       ? selectedOverviewUser.isOnline
                       : undefined
                   )}
+                  {detailUser.lastActiveAt ? (
+                    <>
+                      {' · '}
+                      精确时间：{formatDateTime(detailUser.lastActiveAt)}
+                    </>
+                  ) : null}
                   {' · '}
                   观看记录：{detailUser.playRecordCount} 条
                 </p>

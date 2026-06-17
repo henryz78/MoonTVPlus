@@ -2,6 +2,9 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import UserActivityPage from './page';
 
+const NOW = 1_800_000_000_000;
+const THREE_HOURS_AGO = NOW - 3 * 60 * 60 * 1000;
+
 jest.mock('@/components/PageLayout', () => {
   return function MockPageLayout({ children }: { children: React.ReactNode }) {
     return <div>{children}</div>;
@@ -9,8 +12,11 @@ jest.mock('@/components/PageLayout', () => {
 });
 
 describe('UserActivityPage', () => {
+  let dateNowSpy: jest.SpyInstance<number, []>;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    dateNowSpy = jest.spyOn(Date, 'now').mockReturnValue(NOW);
     window.fetch = jest.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
 
@@ -22,7 +28,7 @@ describe('UserActivityPage', () => {
               username: 'alice',
               role: 'user',
               banned: false,
-              lastActiveAt: null,
+              lastActiveAt: THREE_HOURS_AGO,
               playRecordCount: 1,
             },
             records: [
@@ -50,7 +56,7 @@ describe('UserActivityPage', () => {
               username: 'alice',
               role: 'user',
               banned: false,
-              lastActiveAt: null,
+              lastActiveAt: THREE_HOURS_AGO,
               isOnline: false,
               playRecordCount: 1,
               latestPlayRecord: {
@@ -71,12 +77,16 @@ describe('UserActivityPage', () => {
     });
   });
 
+  afterEach(() => {
+    dateNowSpy.mockRestore();
+  });
+
   it('loads overview rows and opens a user detail panel', async () => {
     render(<UserActivityPage />);
 
     expect(await screen.findByText('用户动态')).toBeInTheDocument();
     expect(await screen.findByText('alice')).toBeInTheDocument();
-    expect(screen.getByText('从未活跃')).toBeInTheDocument();
+    expect(screen.getByText('3 小时前在线')).toBeInTheDocument();
     expect(screen.getByText('沙丘 · 第 1 集 · 50%')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '查看详情' }));
@@ -87,6 +97,9 @@ describe('UserActivityPage', () => {
         { cache: 'no-store' }
       );
     });
+    expect(
+      screen.getByText(/最近活跃：3 小时前在线 · 精确时间：/)
+    ).toBeInTheDocument();
     expect(await screen.findByText('source · 第 1 / 2 集')).toBeInTheDocument();
     expect(screen.getByText(/进度 50%/)).toBeInTheDocument();
   });

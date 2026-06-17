@@ -115,6 +115,52 @@ export async function verifyRefreshToken(
   }
 }
 
+export async function touchRefreshTokenLastUsed(
+  username: string,
+  tokenId: string
+): Promise<boolean> {
+  const hashKey = `user_tokens:${username}`;
+  const storage = await loadStorage();
+
+  if (
+    !storage ||
+    typeof (storage as any).adapter?.hGet !== 'function' ||
+    typeof (storage as any).adapter?.hSet !== 'function'
+  ) {
+    console.warn('Redis Hash not supported');
+    return false;
+  }
+
+  try {
+    const dataStr = await (storage as any).adapter.hGet(hashKey, tokenId);
+
+    if (!dataStr) {
+      return false;
+    }
+
+    const tokenData: TokenData = JSON.parse(dataStr);
+
+    if (Date.now() > tokenData.expiresAt) {
+      if (typeof (storage as any).adapter?.hDel === 'function') {
+        await (storage as any).adapter.hDel(hashKey, tokenId);
+      }
+      return false;
+    }
+
+    tokenData.lastUsed = Date.now();
+    await (storage as any).adapter.hSet(
+      hashKey,
+      tokenId,
+      JSON.stringify(tokenData)
+    );
+
+    return true;
+  } catch (error) {
+    console.error('Failed to touch refresh token lastUsed:', error);
+    return false;
+  }
+}
+
 // 撤销单个 Token
 export async function revokeRefreshToken(
   username: string,

@@ -24,7 +24,7 @@ jest.mock('@/lib/refresh-token', () => ({
   touchRefreshTokenLastUsed: jest.fn(),
 }));
 
-const makeRequest = () => ({}) as Parameters<typeof POST>[0];
+const makeRequest = () => ({} as Parameters<typeof POST>[0]);
 
 describe('POST /api/auth/activity', () => {
   const originalStorageType = process.env.NEXT_PUBLIC_STORAGE_TYPE;

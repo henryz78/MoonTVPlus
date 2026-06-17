@@ -52,13 +52,19 @@ describe('admin user activity helpers', () => {
   });
 
   it('allows owner to view any target and admin to view users plus self', () => {
-    expect(canViewTargetUsername('owner', 'alice', 'owner', 'owner')).toBe(true);
+    expect(canViewTargetUsername('owner', 'alice', 'owner', 'owner')).toBe(
+      true
+    );
     expect(canViewTargetUsername('admin', 'admin', 'alice', 'user')).toBe(true);
-    expect(canViewTargetUsername('admin', 'admin', 'admin', 'admin')).toBe(true);
-    expect(canViewTargetUsername('admin', 'admin', 'owner', 'owner')).toBe(false);
-    expect(canViewTargetUsername('admin', 'admin', 'other-admin', 'admin')).toBe(
+    expect(canViewTargetUsername('admin', 'admin', 'admin', 'admin')).toBe(
+      true
+    );
+    expect(canViewTargetUsername('admin', 'admin', 'owner', 'owner')).toBe(
       false
     );
+    expect(
+      canViewTargetUsername('admin', 'admin', 'other-admin', 'admin')
+    ).toBe(false);
     expect(canViewTargetUsername('user', 'alice', 'alice', 'user')).toBe(false);
   });
 

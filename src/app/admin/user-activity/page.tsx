@@ -306,7 +306,9 @@ export default function UserActivityPage() {
           <aside className='rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900'>
             <div className='mb-3'>
               <h2 className='text-base font-semibold text-gray-900 dark:text-gray-100'>
-                {selectedUsername ? `${selectedUsername} 的观看记录` : '观看记录详情'}
+                {selectedUsername
+                  ? `${selectedUsername} 的观看记录`
+                  : '观看记录详情'}
               </h2>
               {detailUser && (
                 <p className='mt-1 text-xs text-gray-500'>

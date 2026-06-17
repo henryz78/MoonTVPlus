@@ -92,7 +92,9 @@ export function summarizeLatestPlayRecord(
 
 async function getConfigUser(username: string) {
   const adminConfig = await getConfig();
-  return adminConfig.UserConfig.Users.find((user) => user.username === username);
+  return adminConfig.UserConfig.Users.find(
+    (user) => user.username === username
+  );
 }
 
 async function getOperatorRole(username: string): Promise<UserActivityRole> {

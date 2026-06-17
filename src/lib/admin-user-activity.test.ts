@@ -153,6 +153,45 @@ describe('admin user activity helpers', () => {
     expect(result.total).toBe(2);
   });
 
+  it('uses the latest play record save time as recent activity when it is newer than device activity', async () => {
+    (db.getUserListV2 as jest.Mock).mockResolvedValue({
+      users: [user('ken', 'user')],
+      total: 1,
+    });
+    (db.getAllPlayRecords as jest.Mock).mockResolvedValue({
+      'source+latest': {
+        title: '识骨寻踪第一季',
+        source_name: 'source',
+        cover: '',
+        year: '',
+        index: 1,
+        total_episodes: 22,
+        play_time: 40,
+        total_time: 60,
+        save_time: 300,
+        search_title: '',
+      },
+    });
+    (getUserDevices as jest.Mock).mockResolvedValue([
+      {
+        tokenId: 'a',
+        deviceInfo: 'Chrome',
+        createdAt: 1,
+        lastUsed: 100,
+        expiresAt: 9999,
+      },
+    ]);
+
+    const result = await getUserActivityOverview({
+      operatorUsername: 'owner',
+      page: 1,
+      limit: 20,
+      search: '',
+    });
+
+    expect(result.users[0].lastActiveAt).toBe(300);
+  });
+
   it('sorts users without activity after users with activity', async () => {
     (db.getUserListV2 as jest.Mock).mockResolvedValue({
       users: [user('inactive', 'user'), user('active', 'user')],
@@ -289,7 +328,7 @@ describe('admin user activity helpers', () => {
       username: 'alice',
       role: 'user',
       banned: false,
-      lastActiveAt: null,
+      lastActiveAt: 20,
       playRecordCount: 2,
     });
   });

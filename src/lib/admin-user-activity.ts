@@ -158,6 +158,15 @@ async function getLastActiveAt(username: string): Promise<number | null> {
   }, null);
 }
 
+function newestActivityTime(
+  deviceLastActiveAt: number | null,
+  latestRecordSaveTime?: number
+) {
+  if (!latestRecordSaveTime) return deviceLastActiveAt;
+  if (!deviceLastActiveAt) return latestRecordSaveTime;
+  return Math.max(deviceLastActiveAt, latestRecordSaveTime);
+}
+
 function matchesUsernameSearch(username: string, search: string) {
   return !search || username.toLowerCase().includes(search.toLowerCase());
 }
@@ -170,14 +179,19 @@ async function buildOverviewRow(
     getLastActiveAt(user.username),
   ]);
   const latest = latestRecordFrom(records);
+  const effectiveLastActiveAt = newestActivityTime(
+    lastActiveAt,
+    latest?.record.save_time
+  );
 
   return {
     username: user.username,
     role: user.role,
     banned: user.banned,
-    lastActiveAt,
+    lastActiveAt: effectiveLastActiveAt,
     isOnline: Boolean(
-      lastActiveAt && Date.now() - lastActiveAt <= ONLINE_THRESHOLD_MS
+      effectiveLastActiveAt &&
+        Date.now() - effectiveLastActiveAt <= ONLINE_THRESHOLD_MS
     ),
     playRecordCount: Object.keys(records).length,
     latestPlayRecord: latest ? summarizeLatestPlayRecord(latest.record) : null,
@@ -318,13 +332,17 @@ export async function getUserActivityDetail(input: {
   const sortedRecords = Object.entries(records)
     .map(([key, record]) => ({ ...record, key }))
     .sort((a, b) => b.save_time - a.save_time);
+  const effectiveLastActiveAt = newestActivityTime(
+    lastActiveAt,
+    sortedRecords[0]?.save_time
+  );
 
   return {
     user: {
       username: target.username,
       role: target.role,
       banned: target.banned,
-      lastActiveAt,
+      lastActiveAt: effectiveLastActiveAt,
       playRecordCount: sortedRecords.length,
     },
     records: sortedRecords,

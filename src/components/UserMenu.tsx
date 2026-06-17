@@ -3,6 +3,7 @@
 'use client';
 
 import {
+  Activity,
   Bell,
   Check,
   ChevronDown,
@@ -1333,7 +1334,13 @@ export const UserMenu: React.FC = () => {
   };
 
   const handleAdminPanel = () => {
+    setIsOpen(false);
     router.push('/admin');
+  };
+
+  const handleUserActivity = () => {
+    setIsOpen(false);
+    router.push('/admin/user-activity');
   };
 
   const handleChangePassword = () => {
@@ -2271,6 +2278,17 @@ export const UserMenu: React.FC = () => {
             >
               <Shield className='w-4 h-4 text-gray-500 dark:text-gray-400' />
               <span className='font-medium'>管理面板</span>
+            </button>
+          )}
+
+          {/* 用户动态按钮 */}
+          {showAdminPanel && (
+            <button
+              onClick={handleUserActivity}
+              className='w-full px-3 py-2 text-left flex items-center gap-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm'
+            >
+              <Activity className='w-4 h-4 text-gray-500 dark:text-gray-400' />
+              <span className='font-medium'>用户动态</span>
             </button>
           )}
 

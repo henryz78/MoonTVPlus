@@ -14,6 +14,7 @@ import {
   Favorite,
   IStorage,
   PlayRecord,
+  RegistrationRequest,
   SkipConfig,
 } from './types';
 
@@ -667,6 +668,119 @@ export class DbManager {
       return (this.storage as any).getUsersByTag(tagName);
     }
     return [];
+  }
+
+  async getAllRegistrationRequests(
+    status?: RegistrationRequest['status']
+  ): Promise<RegistrationRequest[]> {
+    if (typeof (this.storage as any).getAllRegistrationRequests === 'function') {
+      return (this.storage as any).getAllRegistrationRequests(status);
+    }
+    return [];
+  }
+
+  async getRegistrationRequest(
+    id: string
+  ): Promise<RegistrationRequest | null> {
+    if (typeof (this.storage as any).getRegistrationRequest === 'function') {
+      return (this.storage as any).getRegistrationRequest(id);
+    }
+    return null;
+  }
+
+  async createRegistrationRequest(
+    request: RegistrationRequest
+  ): Promise<void> {
+    if (typeof (this.storage as any).createRegistrationRequest === 'function') {
+      await (this.storage as any).createRegistrationRequest(request);
+      return;
+    }
+    throw new Error('当前存储类型不支持注册审批');
+  }
+
+  async updateRegistrationRequest(
+    id: string,
+    updates: Partial<RegistrationRequest>
+  ): Promise<void> {
+    if (typeof (this.storage as any).updateRegistrationRequest === 'function') {
+      await (this.storage as any).updateRegistrationRequest(id, updates);
+      return;
+    }
+    throw new Error('当前存储类型不支持注册审批');
+  }
+
+  async findRegistrationRequestByUsername(
+    username: string
+  ): Promise<RegistrationRequest | null> {
+    if (
+      typeof (this.storage as any).findRegistrationRequestByUsername ===
+      'function'
+    ) {
+      return (this.storage as any).findRegistrationRequestByUsername(username);
+    }
+    return null;
+  }
+
+  async findRegistrationRequestByEmail(
+    normalizedEmail: string
+  ): Promise<RegistrationRequest | null> {
+    if (
+      typeof (this.storage as any).findRegistrationRequestByEmail ===
+      'function'
+    ) {
+      return (this.storage as any).findRegistrationRequestByEmail(
+        normalizedEmail
+      );
+    }
+    return null;
+  }
+
+  async getUserEmail(userName: string): Promise<string | null> {
+    if (typeof (this.storage as any).getUserEmail === 'function') {
+      return (this.storage as any).getUserEmail(userName);
+    }
+    return null;
+  }
+
+  async setUserEmail(userName: string, email: string): Promise<void> {
+    if (typeof (this.storage as any).setUserEmail === 'function') {
+      await (this.storage as any).setUserEmail(userName, email);
+    }
+  }
+
+  async findUserByEmail(normalizedEmail: string): Promise<string | null> {
+    if (typeof (this.storage as any).findUserByEmail === 'function') {
+      return (this.storage as any).findUserByEmail(normalizedEmail);
+    }
+    return null;
+  }
+
+  async createUserWithHashedPassword(
+    userName: string,
+    passwordHash: string,
+    role: 'owner' | 'admin' | 'user',
+    createdAt: number,
+    tags?: string[],
+    oidcSub?: string,
+    enabledApis?: string[],
+    banned?: boolean,
+    email?: string
+  ): Promise<void> {
+    if (typeof (this.storage as any).createUserWithHashedPassword === 'function') {
+      await (this.storage as any).createUserWithHashedPassword(
+        userName,
+        passwordHash,
+        role,
+        createdAt,
+        tags,
+        oidcSub,
+        enabledApis,
+        banned,
+        email
+      );
+      return;
+    }
+    throw new Error('当前存储类型不支持哈希密码创建用户');
   }
 
   // ---------- TVBox订阅token ----------

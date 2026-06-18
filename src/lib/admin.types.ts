@@ -51,6 +51,11 @@ export interface AdminConfig {
     EnableRegistration?: boolean; // 开启注册
     RequireRegistrationInviteCode?: boolean; // 注册时要求邀请码
     RegistrationInviteCode?: string; // 通用注册邀请码
+    RegistrationRequireEmailVerification?: boolean; // 注册时要求邮箱验证码
+    RegistrationEmailDomainAllowlist?: string[]; // 注册邮箱域名白名单，空数组表示不限制
+    RegistrationBlockEmailAliases?: boolean; // 禁止 +、首尾点号、连续点号等邮箱别名
+    RegistrationRequireApproval?: boolean; // 注册后需要管理员审批
+    RegistrationApprovalQuestion?: string; // 注册审批问题，留空则不要求回答
     RegistrationRequireTurnstile?: boolean; // 注册启用Cloudflare Turnstile
     LoginRequireTurnstile?: boolean; // 登录启用Cloudflare Turnstile
     TurnstileSiteKey?: string; // Cloudflare Turnstile Site Key

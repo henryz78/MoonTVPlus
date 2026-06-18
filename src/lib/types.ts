@@ -31,6 +31,22 @@ export interface Favorite {
   vod_remarks?: string; // 视频备注信息
 }
 
+export interface RegistrationRequest {
+  id: string;
+  username: string;
+  passwordHash: string;
+  email?: string;
+  normalizedEmail?: string;
+  approvalQuestion?: string;
+  approvalAnswer?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: number;
+  updatedAt: number;
+  reviewedAt?: number;
+  reviewedBy?: string;
+  rejectReason?: string;
+}
+
 // 存储接口
 export interface IStorage {
   // 播放记录相关
@@ -209,6 +225,24 @@ export interface IStorage {
   addUserMovieRequest(userName: string, requestId: string): Promise<void>;
   removeUserMovieRequest(userName: string, requestId: string): Promise<void>;
 
+  // 注册审批相关
+  getAllRegistrationRequests?(
+    status?: RegistrationRequest['status']
+  ): Promise<RegistrationRequest[]>;
+  getRegistrationRequest?(id: string): Promise<RegistrationRequest | null>;
+  createRegistrationRequest?(request: RegistrationRequest): Promise<void>;
+  updateRegistrationRequest?(
+    id: string,
+    updates: Partial<RegistrationRequest>
+  ): Promise<void>;
+  deleteRegistrationRequest?(id: string): Promise<void>;
+  findRegistrationRequestByUsername?(
+    username: string
+  ): Promise<RegistrationRequest | null>;
+  findRegistrationRequestByEmail?(
+    normalizedEmail: string
+  ): Promise<RegistrationRequest | null>;
+
   // 新版用户存储（V2）- 可选方法
   getUserInfoV2?(userName: string): Promise<{
     role: 'owner' | 'admin' | 'user';
@@ -228,6 +262,18 @@ export interface IStorage {
   // 用户邮箱相关
   getUserEmail?(userName: string): Promise<string | null>;
   setUserEmail?(userName: string, email: string): Promise<void>;
+  findUserByEmail?(normalizedEmail: string): Promise<string | null>;
+  createUserWithHashedPassword?(
+    userName: string,
+    passwordHash: string,
+    role: 'owner' | 'admin' | 'user',
+    createdAt: number,
+    tags?: string[],
+    oidcSub?: string,
+    enabledApis?: string[],
+    banned?: boolean,
+    email?: string
+  ): Promise<void>;
   getEmailNotificationPreference?(userName: string): Promise<boolean>;
   setEmailNotificationPreference?(
     userName: string,
@@ -369,6 +415,7 @@ export type NotificationType =
   | 'system' // 系统通知
   | 'announcement' // 公告
   | 'movie_request' // 新求片通知（给管理员）
+  | 'registration_request' // 新注册审批通知（给管理员）
   | 'request_fulfilled' // 求片已上架通知（给求片用户）
   | 'anime_subscription_update'; // 追番订阅更新
 

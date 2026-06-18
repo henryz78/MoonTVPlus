@@ -673,7 +673,9 @@ export class DbManager {
   async getAllRegistrationRequests(
     status?: RegistrationRequest['status']
   ): Promise<RegistrationRequest[]> {
-    if (typeof (this.storage as any).getAllRegistrationRequests === 'function') {
+    if (
+      typeof (this.storage as any).getAllRegistrationRequests === 'function'
+    ) {
       return (this.storage as any).getAllRegistrationRequests(status);
     }
     return [];
@@ -688,9 +690,7 @@ export class DbManager {
     return null;
   }
 
-  async createRegistrationRequest(
-    request: RegistrationRequest
-  ): Promise<void> {
+  async createRegistrationRequest(request: RegistrationRequest): Promise<void> {
     if (typeof (this.storage as any).createRegistrationRequest === 'function') {
       await (this.storage as any).createRegistrationRequest(request);
       return;
@@ -725,8 +725,7 @@ export class DbManager {
     normalizedEmail: string
   ): Promise<RegistrationRequest | null> {
     if (
-      typeof (this.storage as any).findRegistrationRequestByEmail ===
-      'function'
+      typeof (this.storage as any).findRegistrationRequestByEmail === 'function'
     ) {
       return (this.storage as any).findRegistrationRequestByEmail(
         normalizedEmail
@@ -766,7 +765,9 @@ export class DbManager {
     banned?: boolean,
     email?: string
   ): Promise<void> {
-    if (typeof (this.storage as any).createUserWithHashedPassword === 'function') {
+    if (
+      typeof (this.storage as any).createUserWithHashedPassword === 'function'
+    ) {
       await (this.storage as any).createUserWithHashedPassword(
         userName,
         passwordHash,
@@ -1214,6 +1215,16 @@ export class DbManager {
   async deleteGlobalValue(key: string): Promise<void> {
     if (typeof (this.storage as any).deleteGlobalValue === 'function') {
       await (this.storage as any).deleteGlobalValue(key);
+    }
+  }
+
+  // ---------- 通知 ----------
+  async addNotification(
+    userName: string,
+    notification: import('./types').Notification
+  ): Promise<void> {
+    if (typeof (this.storage as any).addNotification === 'function') {
+      await (this.storage as any).addNotification(userName, notification);
     }
   }
 }

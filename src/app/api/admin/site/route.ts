@@ -66,6 +66,11 @@ export async function POST(request: NextRequest) {
       EnableRegistration,
       RequireRegistrationInviteCode,
       RegistrationInviteCode,
+      RegistrationRequireEmailVerification,
+      RegistrationEmailDomainAllowlist,
+      RegistrationBlockEmailAliases,
+      RegistrationRequireApproval,
+      RegistrationApprovalQuestion,
       RegistrationRequireTurnstile,
       LoginRequireTurnstile,
       TurnstileSiteKey,
@@ -119,6 +124,11 @@ export async function POST(request: NextRequest) {
       EnableRegistration?: boolean;
       RequireRegistrationInviteCode?: boolean;
       RegistrationInviteCode?: string;
+      RegistrationRequireEmailVerification?: boolean;
+      RegistrationEmailDomainAllowlist?: string[];
+      RegistrationBlockEmailAliases?: boolean;
+      RegistrationRequireApproval?: boolean;
+      RegistrationApprovalQuestion?: string;
       RegistrationRequireTurnstile?: boolean;
       LoginRequireTurnstile?: boolean;
       TurnstileSiteKey?: string;
@@ -192,6 +202,19 @@ export async function POST(request: NextRequest) {
         typeof RequireRegistrationInviteCode !== 'boolean') ||
       (RegistrationInviteCode !== undefined &&
         typeof RegistrationInviteCode !== 'string') ||
+      (RegistrationRequireEmailVerification !== undefined &&
+        typeof RegistrationRequireEmailVerification !== 'boolean') ||
+      (RegistrationEmailDomainAllowlist !== undefined &&
+        (!Array.isArray(RegistrationEmailDomainAllowlist) ||
+          RegistrationEmailDomainAllowlist.some(
+            (domain) => typeof domain !== 'string'
+          ))) ||
+      (RegistrationBlockEmailAliases !== undefined &&
+        typeof RegistrationBlockEmailAliases !== 'boolean') ||
+      (RegistrationRequireApproval !== undefined &&
+        typeof RegistrationRequireApproval !== 'boolean') ||
+      (RegistrationApprovalQuestion !== undefined &&
+        typeof RegistrationApprovalQuestion !== 'string') ||
       (RegistrationRequireTurnstile !== undefined &&
         typeof RegistrationRequireTurnstile !== 'boolean') ||
       (LoginRequireTurnstile !== undefined &&
@@ -269,6 +292,11 @@ export async function POST(request: NextRequest) {
       EnableRegistration,
       RequireRegistrationInviteCode,
       RegistrationInviteCode,
+      RegistrationRequireEmailVerification,
+      RegistrationEmailDomainAllowlist,
+      RegistrationBlockEmailAliases,
+      RegistrationRequireApproval,
+      RegistrationApprovalQuestion,
       RegistrationRequireTurnstile,
       LoginRequireTurnstile,
       TurnstileSiteKey,

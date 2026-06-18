@@ -37,11 +37,19 @@ export function getFavoriteUpdateEmailTemplate(
           ? `<img src="${u.cover}" alt="${u.title}" style="width: 100%; max-width: 200px; border-radius: 5px; margin-bottom: 10px;" />`
           : ''
       }
-      <div style="font-size: 16px; font-weight: bold; margin-bottom: 8px;">${u.title}</div>
+      <div style="font-size: 16px; font-weight: bold; margin-bottom: 8px;">${
+        u.title
+      }</div>
       <div style="color: #666; margin-bottom: 10px;">
-        更新：第 ${u.oldEpisodes} 集 → <span style="color: #4F46E5; font-weight: bold;">第 ${u.newEpisodes} 集</span>
+        更新：第 ${
+          u.oldEpisodes
+        } 集 → <span style="color: #4F46E5; font-weight: bold;">第 ${
+        u.newEpisodes
+      } 集</span>
       </div>
-      <a href="${u.url}" style="display: inline-block; padding: 8px 16px; background: #4F46E5; color: white; text-decoration: none; border-radius: 5px; font-size: 14px;">立即观看</a>
+      <a href="${
+        u.url
+      }" style="display: inline-block; padding: 8px 16px; background: #4F46E5; color: white; text-decoration: none; border-radius: 5px; font-size: 14px;">立即观看</a>
     </div>
   `
     )
@@ -118,7 +126,9 @@ export function getFavoriteUpdateEmailTemplate(
           <p style="color: #666; margin-top: 20px;">快去观看吧！</p>
         </div>
         <div class="footer">
-          <p>此邮件由 <a href="${siteUrl}">${siteName || 'MoonTVPlus'}</a> 自动发送</p>
+          <p>此邮件由 <a href="${siteUrl}">${
+    siteName || 'MoonTVPlus'
+  }</a> 自动发送</p>
           <p>如不想接收此类邮件，请在用户设置中关闭邮件通知</p>
         </div>
       </div>
@@ -173,12 +183,22 @@ export function getBatchFavoriteUpdateEmailTemplate(
             : ''
         }
         <div style="flex: 1;">
-          <div style="font-size: 16px; font-weight: bold; margin-bottom: 8px;">${u.title}</div>
+          <div style="font-size: 16px; font-weight: bold; margin-bottom: 8px;">${
+            u.title
+          }</div>
           <div style="color: #666; margin-bottom: 10px;">
-            第 ${u.oldEpisodes} 集 → <span style="color: #4F46E5; font-weight: bold;">第 ${u.newEpisodes} 集</span>
-            <span style="color: #10b981; font-weight: bold;">(+${u.newEpisodes - u.oldEpisodes})</span>
+            第 ${
+              u.oldEpisodes
+            } 集 → <span style="color: #4F46E5; font-weight: bold;">第 ${
+        u.newEpisodes
+      } 集</span>
+            <span style="color: #10b981; font-weight: bold;">(+${
+              u.newEpisodes - u.oldEpisodes
+            })</span>
           </div>
-          <a href="${u.url}" style="display: inline-block; padding: 6px 12px; background: #4F46E5; color: white; text-decoration: none; border-radius: 5px; font-size: 13px;">立即观看</a>
+          <a href="${
+            u.url
+          }" style="display: inline-block; padding: 6px 12px; background: #4F46E5; color: white; text-decoration: none; border-radius: 5px; font-size: 13px;">立即观看</a>
         </div>
       </div>
     </div>
@@ -264,7 +284,9 @@ export function getBatchFavoriteUpdateEmailTemplate(
           <p style="color: #666; margin-top: 20px;">快去观看吧！</p>
         </div>
         <div class="footer">
-          <p>此邮件由 <a href="${siteUrl}">${siteName || 'MoonTVPlus'}</a> 自动发送</p>
+          <p>此邮件由 <a href="${siteUrl}">${
+    siteName || 'MoonTVPlus'
+  }</a> 自动发送</p>
           <p>如不想接收此类邮件，请在用户设置中关闭邮件通知</p>
         </div>
       </div>
@@ -281,7 +303,8 @@ export function getBatchMangaUpdateEmailTemplate(
 ): string {
   const totalUpdates = updates.length;
   const totalNewChapters = updates.reduce(
-    (sum, item) => sum + Math.max(item.latestChapterCount - item.previousChapterCount, 0),
+    (sum, item) =>
+      sum + Math.max(item.latestChapterCount - item.previousChapterCount, 0),
     0
   );
 
@@ -296,17 +319,28 @@ export function getBatchMangaUpdateEmailTemplate(
             : ''
         }
         <div style="flex: 1;">
-          <div style="font-size: 16px; font-weight: bold; margin-bottom: 8px;">${item.title}</div>
+          <div style="font-size: 16px; font-weight: bold; margin-bottom: 8px;">${
+            item.title
+          }</div>
           <div style="color: #666; margin-bottom: 6px;">
-            ${item.previousChapterCount} 话 → <span style="color: #2563eb; font-weight: bold;">${item.latestChapterCount} 话</span>
-            <span style="color: #10b981; font-weight: bold;">(+${Math.max(item.latestChapterCount - item.previousChapterCount, 0)})</span>
+            ${
+              item.previousChapterCount
+            } 话 → <span style="color: #2563eb; font-weight: bold;">${
+        item.latestChapterCount
+      } 话</span>
+            <span style="color: #10b981; font-weight: bold;">(+${Math.max(
+              item.latestChapterCount - item.previousChapterCount,
+              0
+            )})</span>
           </div>
           ${
             item.latestChapterName
               ? `<div style="color: #666; margin-bottom: 10px;">最新章节：${item.latestChapterName}</div>`
               : ''
           }
-          <a href="${item.url}" style="display: inline-block; padding: 6px 12px; background: #2563eb; color: white; text-decoration: none; border-radius: 5px; font-size: 13px;">查看详情</a>
+          <a href="${
+            item.url
+          }" style="display: inline-block; padding: 6px 12px; background: #2563eb; color: white; text-decoration: none; border-radius: 5px; font-size: 13px;">查看详情</a>
         </div>
       </div>
     </div>
@@ -391,9 +425,36 @@ export function getBatchMangaUpdateEmailTemplate(
           ${updatesList}
         </div>
         <div class="footer">
-          <p>此邮件由 <a href="${siteUrl}">${siteName || 'MoonTVPlus'}</a> 自动发送</p>
+          <p>此邮件由 <a href="${siteUrl}">${
+    siteName || 'MoonTVPlus'
+  }</a> 自动发送</p>
           <p>如不想接收此类邮件，请在用户设置中关闭邮件通知</p>
         </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+export function getRegistrationEmailCodeTemplate(
+  code: string,
+  siteName?: string
+): string {
+  const displayName = siteName || 'MoonTVPlus';
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#f5f5f5; padding:20px;">
+      <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:10px;padding:24px;">
+        <h2 style="margin-top:0;">${displayName} 注册验证码</h2>
+        <p>你的注册验证码是：</p>
+        <div style="font-size:32px;font-weight:700;letter-spacing:6px;margin:20px 0;">${code}</div>
+        <p style="color:#666;">验证码 10 分钟内有效。如果不是你本人操作，可以忽略这封邮件。</p>
       </div>
     </body>
     </html>

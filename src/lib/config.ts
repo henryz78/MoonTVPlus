@@ -131,10 +131,12 @@ export function refineConfig(adminConfig: AdminConfig): AdminConfig {
     ? fileConfig.specialSourceApis
     : undefined;
   if (specialApisFromFile) {
-    const sourceKeys = new Set(adminConfig.SourceConfig.map((source) => source.key));
-    adminConfig.SpecialSourceApis = Array.from(new Set(specialApisFromFile)).filter((key) =>
-      sourceKeys.has(key)
+    const sourceKeys = new Set(
+      adminConfig.SourceConfig.map((source) => source.key)
     );
+    adminConfig.SpecialSourceApis = Array.from(
+      new Set(specialApisFromFile)
+    ).filter((key) => sourceKeys.has(key));
   }
 
   // 覆盖 CustomCategories
@@ -321,6 +323,11 @@ async function getInitConfig(
       EnableRegistration: false,
       RequireRegistrationInviteCode: false,
       RegistrationInviteCode: '',
+      RegistrationRequireEmailVerification: false,
+      RegistrationEmailDomainAllowlist: [],
+      RegistrationBlockEmailAliases: false,
+      RegistrationRequireApproval: false,
+      RegistrationApprovalQuestion: '',
       RegistrationRequireTurnstile: false,
       LoginRequireTurnstile: false,
       TurnstileSiteKey: '',
@@ -392,7 +399,10 @@ export async function getConfig(): Promise<AdminConfig> {
   const now = Date.now();
 
   // localStorage 模式下不需要 TTL 缓存过期（环境变量在运行时不会改变）
-  if (cachedConfig && (storageType === 'localstorage' || (now - lastConfigFetchTime < CACHE_TTL))) {
+  if (
+    cachedConfig &&
+    (storageType === 'localstorage' || now - lastConfigFetchTime < CACHE_TTL)
+  ) {
     return cachedConfig;
   }
 
@@ -522,6 +532,11 @@ export function configSelfCheck(adminConfig: AdminConfig): AdminConfig {
       EnableRegistration: false,
       RequireRegistrationInviteCode: false,
       RegistrationInviteCode: '',
+      RegistrationRequireEmailVerification: false,
+      RegistrationEmailDomainAllowlist: [],
+      RegistrationBlockEmailAliases: false,
+      RegistrationRequireApproval: false,
+      RegistrationApprovalQuestion: '',
       RegistrationRequireTurnstile: false,
       LoginRequireTurnstile: false,
       TurnstileSiteKey: '',
@@ -557,6 +572,23 @@ export function configSelfCheck(adminConfig: AdminConfig): AdminConfig {
   }
   if (adminConfig.SiteConfig.RegistrationInviteCode === undefined) {
     adminConfig.SiteConfig.RegistrationInviteCode = '';
+  }
+  if (
+    adminConfig.SiteConfig.RegistrationRequireEmailVerification === undefined
+  ) {
+    adminConfig.SiteConfig.RegistrationRequireEmailVerification = false;
+  }
+  if (!Array.isArray(adminConfig.SiteConfig.RegistrationEmailDomainAllowlist)) {
+    adminConfig.SiteConfig.RegistrationEmailDomainAllowlist = [];
+  }
+  if (adminConfig.SiteConfig.RegistrationBlockEmailAliases === undefined) {
+    adminConfig.SiteConfig.RegistrationBlockEmailAliases = false;
+  }
+  if (adminConfig.SiteConfig.RegistrationRequireApproval === undefined) {
+    adminConfig.SiteConfig.RegistrationRequireApproval = false;
+  }
+  if (adminConfig.SiteConfig.RegistrationApprovalQuestion === undefined) {
+    adminConfig.SiteConfig.RegistrationApprovalQuestion = '';
   }
   if (adminConfig.SiteConfig.RegistrationRequireTurnstile === undefined) {
     adminConfig.SiteConfig.RegistrationRequireTurnstile = false;
@@ -665,9 +697,15 @@ export function configSelfCheck(adminConfig: AdminConfig): AdminConfig {
     return true;
   });
 
-  const validSourceKeys = new Set(adminConfig.SourceConfig.map((source) => source.key));
+  const validSourceKeys = new Set(
+    adminConfig.SourceConfig.map((source) => source.key)
+  );
   adminConfig.SpecialSourceApis = Array.from(
-    new Set((adminConfig.SpecialSourceApis || []).filter((key) => validSourceKeys.has(key)))
+    new Set(
+      (adminConfig.SpecialSourceApis || []).filter((key) =>
+        validSourceKeys.has(key)
+      )
+    )
   );
 
   // 自定义分类去重

@@ -389,6 +389,11 @@ interface SiteConfig {
   EnableRegistration?: boolean;
   RequireRegistrationInviteCode?: boolean;
   RegistrationInviteCode?: string;
+  RegistrationRequireEmailVerification?: boolean;
+  RegistrationEmailDomainAllowlist?: string[];
+  RegistrationBlockEmailAliases?: boolean;
+  RegistrationRequireApproval?: boolean;
+  RegistrationApprovalQuestion?: string;
   RegistrationRequireTurnstile?: boolean;
   LoginRequireTurnstile?: boolean;
   TurnstileSiteKey?: string;
@@ -6322,7 +6327,9 @@ const VideoSourceConfig = ({
   const [showValidationModal, setShowValidationModal] = useState(false);
   const [showWeightModal, setShowWeightModal] = useState(false);
   const [showSpecialSourcesModal, setShowSpecialSourcesModal] = useState(false);
-  const [specialSourceDraftApis, setSpecialSourceDraftApis] = useState<string[]>([]);
+  const [specialSourceDraftApis, setSpecialSourceDraftApis] = useState<
+    string[]
+  >([]);
   const [weightDraftSources, setWeightDraftSources] = useState<DataSource[]>(
     []
   );
@@ -6455,7 +6462,6 @@ const VideoSourceConfig = ({
       console.error('操作失败', 'toggle_proxy_mode', key);
     });
   };
-
 
   const openSpecialSourcesModal = () => {
     setSpecialSourceDraftApis(config?.SpecialSourceApis || []);
@@ -7504,7 +7510,6 @@ const VideoSourceConfig = ({
         </table>
       </div>
 
-
       {showSpecialSourcesModal &&
         createPortal(
           <div
@@ -7521,7 +7526,8 @@ const VideoSourceConfig = ({
                     特殊源设置
                   </h3>
                   <p className='mt-1 text-sm text-gray-600 dark:text-gray-400'>
-                    选中的视频源默认对普通搜索隐藏，仅在当前设备访问 /special 开启后参与普通 Web 搜索。
+                    选中的视频源默认对普通搜索隐藏，仅在当前设备访问 /special
+                    开启后参与普通 Web 搜索。
                   </p>
                 </div>
                 <button
@@ -7539,7 +7545,8 @@ const VideoSourceConfig = ({
                     配置说明
                   </div>
                   <p className='mt-1 text-sm text-rose-700 dark:text-rose-400'>
-                    这里维护的是特殊源列表，不是用户权限；TVBox、OrionTV、WebTV 始终不会使用这些特殊源。
+                    这里维护的是特殊源列表，不是用户权限；TVBox、OrionTV、WebTV
+                    始终不会使用这些特殊源。
                   </p>
                 </div>
 
@@ -7555,7 +7562,9 @@ const VideoSourceConfig = ({
                         onChange={(e) => {
                           if (e.target.checked) {
                             setSpecialSourceDraftApis((prev) =>
-                              prev.includes(source.key) ? prev : [...prev, source.key]
+                              prev.includes(source.key)
+                                ? prev
+                                : [...prev, source.key]
                             );
                           } else {
                             setSpecialSourceDraftApis((prev) =>
@@ -7589,9 +7598,9 @@ const VideoSourceConfig = ({
                   <button
                     onClick={() => {
                       const allApis =
-                        config?.SourceConfig?.filter((source) => !source.disabled).map(
-                          (source) => source.key
-                        ) || [];
+                        config?.SourceConfig?.filter(
+                          (source) => !source.disabled
+                        ).map((source) => source.key) || [];
                       setSpecialSourceDraftApis(allApis);
                     }}
                     className={buttonStyles.quickAction}
@@ -7606,7 +7615,10 @@ const VideoSourceConfig = ({
                       {specialSourceDraftApis.length} 个源
                     </span>
                   </span>
-                  <button onClick={closeSpecialSourcesModal} className={buttonStyles.secondary}>
+                  <button
+                    onClick={closeSpecialSourcesModal}
+                    className={buttonStyles.secondary}
+                  >
                     取消
                   </button>
                   <button
@@ -11155,8 +11167,8 @@ const SiteConfigComponent = ({
                   Bangumi Cloudflare Workers 代理脚本
                 </label>
                 <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
-                  复制后粘贴到 Cloudflare Workers，部署后的域名可填入
-                  Bangumi Base URL 和 Bangumi 图片 Base URL。
+                  复制后粘贴到 Cloudflare Workers，部署后的域名可填入 Bangumi
+                  Base URL 和 Bangumi 图片 Base URL。
                 </p>
               </div>
               <div className='flex shrink-0 items-center gap-2'>
@@ -11542,6 +11554,11 @@ const RegistrationConfigComponent = ({
     EnableRegistration: boolean;
     RequireRegistrationInviteCode: boolean;
     RegistrationInviteCode: string;
+    RegistrationRequireEmailVerification: boolean;
+    RegistrationEmailDomainAllowlist: string[];
+    RegistrationBlockEmailAliases: boolean;
+    RegistrationRequireApproval: boolean;
+    RegistrationApprovalQuestion: string;
     RegistrationRequireTurnstile: boolean;
     LoginRequireTurnstile: boolean;
     TurnstileSiteKey: string;
@@ -11561,6 +11578,11 @@ const RegistrationConfigComponent = ({
     EnableRegistration: false,
     RequireRegistrationInviteCode: false,
     RegistrationInviteCode: '',
+    RegistrationRequireEmailVerification: false,
+    RegistrationEmailDomainAllowlist: [],
+    RegistrationBlockEmailAliases: false,
+    RegistrationRequireApproval: false,
+    RegistrationApprovalQuestion: '',
     RegistrationRequireTurnstile: false,
     LoginRequireTurnstile: false,
     TurnstileSiteKey: '',
@@ -11585,6 +11607,16 @@ const RegistrationConfigComponent = ({
         RequireRegistrationInviteCode:
           config.SiteConfig.RequireRegistrationInviteCode || false,
         RegistrationInviteCode: config.SiteConfig.RegistrationInviteCode || '',
+        RegistrationRequireEmailVerification:
+          config.SiteConfig.RegistrationRequireEmailVerification || false,
+        RegistrationEmailDomainAllowlist:
+          config.SiteConfig.RegistrationEmailDomainAllowlist || [],
+        RegistrationBlockEmailAliases:
+          config.SiteConfig.RegistrationBlockEmailAliases || false,
+        RegistrationRequireApproval:
+          config.SiteConfig.RegistrationRequireApproval || false,
+        RegistrationApprovalQuestion:
+          config.SiteConfig.RegistrationApprovalQuestion || '',
         RegistrationRequireTurnstile:
           config.SiteConfig.RegistrationRequireTurnstile || false,
         LoginRequireTurnstile: config.SiteConfig.LoginRequireTurnstile || false,
@@ -11643,12 +11675,23 @@ const RegistrationConfigComponent = ({
           throw new Error('已开启注册邀请码时，邀请码不能为空');
         }
 
+        const normalizedDomainAllowlist = Array.from(
+          new Set(
+            registrationSettings.RegistrationEmailDomainAllowlist.map(
+              (domain) => domain.trim().toLowerCase()
+            ).filter(Boolean)
+          )
+        );
+
         // 合并站点配置和注册配置
         const updatedSiteConfig = {
           ...config.SiteConfig,
           ...registrationSettings,
           RegistrationInviteCode:
             registrationSettings.RegistrationInviteCode.trim(),
+          RegistrationEmailDomainAllowlist: normalizedDomainAllowlist,
+          RegistrationApprovalQuestion:
+            registrationSettings.RegistrationApprovalQuestion.trim(),
         };
 
         const resp = await fetch('/api/admin/site', {
@@ -11826,6 +11869,161 @@ const RegistrationConfigComponent = ({
               />
               <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
                 仅普通注册生效；开启邀请码注册时不能为空。
+              </p>
+            </div>
+
+            <div>
+              <div className='flex items-center justify-between'>
+                <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+                  注册要求邮箱验证码
+                </label>
+                <button
+                  type='button'
+                  onClick={() =>
+                    setRegistrationSettings((prev) => ({
+                      ...prev,
+                      RegistrationRequireEmailVerification:
+                        !prev.RegistrationRequireEmailVerification,
+                    }))
+                  }
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${
+                    registrationSettings.RegistrationRequireEmailVerification
+                      ? buttonStyles.toggleOn
+                      : buttonStyles.toggleOff
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full ${
+                      buttonStyles.toggleThumb
+                    } transition-transform ${
+                      registrationSettings.RegistrationRequireEmailVerification
+                        ? buttonStyles.toggleThumbOn
+                        : buttonStyles.toggleThumbOff
+                    }`}
+                  />
+                </button>
+              </div>
+              <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
+                开启后注册必须填写邮箱并通过邮件验证码验证。需要先在邮件配置中启用
+                SMTP 或 Resend。
+              </p>
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+                邮箱域名白名单
+              </label>
+              <textarea
+                rows={3}
+                placeholder={'gmail.com\noutlook.com'}
+                value={registrationSettings.RegistrationEmailDomainAllowlist.join(
+                  '\n'
+                )}
+                onChange={(e) =>
+                  setRegistrationSettings((prev) => ({
+                    ...prev,
+                    RegistrationEmailDomainAllowlist:
+                      e.target.value.split('\n'),
+                  }))
+                }
+                className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent'
+              />
+              <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
+                每行一个域名，比如
+                gmail.com。白名单为空时允许任意邮箱域名；如果不匹配，注册页会显示允许的域名。
+              </p>
+            </div>
+
+            <div>
+              <div className='flex items-center justify-between'>
+                <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+                  禁止邮箱别名
+                </label>
+                <button
+                  type='button'
+                  onClick={() =>
+                    setRegistrationSettings((prev) => ({
+                      ...prev,
+                      RegistrationBlockEmailAliases:
+                        !prev.RegistrationBlockEmailAliases,
+                    }))
+                  }
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${
+                    registrationSettings.RegistrationBlockEmailAliases
+                      ? buttonStyles.toggleOn
+                      : buttonStyles.toggleOff
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full ${
+                      buttonStyles.toggleThumb
+                    } transition-transform ${
+                      registrationSettings.RegistrationBlockEmailAliases
+                        ? buttonStyles.toggleThumbOn
+                        : buttonStyles.toggleThumbOff
+                    }`}
+                  />
+                </button>
+              </div>
+              <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
+                开启后拒绝 + 别名、开头点、结尾点、连续点号，降低重复注册概率。
+              </p>
+            </div>
+
+            <div>
+              <div className='flex items-center justify-between'>
+                <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+                  开启注册审批
+                </label>
+                <button
+                  type='button'
+                  onClick={() =>
+                    setRegistrationSettings((prev) => ({
+                      ...prev,
+                      RegistrationRequireApproval:
+                        !prev.RegistrationRequireApproval,
+                    }))
+                  }
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${
+                    registrationSettings.RegistrationRequireApproval
+                      ? buttonStyles.toggleOn
+                      : buttonStyles.toggleOff
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full ${
+                      buttonStyles.toggleThumb
+                    } transition-transform ${
+                      registrationSettings.RegistrationRequireApproval
+                        ? buttonStyles.toggleThumbOn
+                        : buttonStyles.toggleThumbOff
+                    }`}
+                  />
+                </button>
+              </div>
+              <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
+                开启后用户提交申请，管理员通过后才会创建账号。
+              </p>
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+                注册审批问题
+              </label>
+              <input
+                type='text'
+                placeholder='例如：你是谁？从哪里知道本站？'
+                value={registrationSettings.RegistrationApprovalQuestion || ''}
+                onChange={(e) =>
+                  setRegistrationSettings((prev) => ({
+                    ...prev,
+                    RegistrationApprovalQuestion: e.target.value,
+                  }))
+                }
+                className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent'
+              />
+              <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
+                留空也可以开启审批；填写后注册页会要求用户回答这个问题。
               </p>
             </div>
 

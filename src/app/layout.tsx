@@ -94,6 +94,11 @@ export default async function RootLayout({
   let progressThumbCustomUrl = '';
   let enableRegistration = false;
   let requireRegistrationInviteCode = false;
+  let registrationRequireEmailVerification = false;
+  let registrationEmailDomainAllowlist: string[] = [];
+  let registrationBlockEmailAliases = false;
+  let registrationRequireApproval = false;
+  let registrationApprovalQuestion = '';
   let loginRequireTurnstile = false;
   let registrationRequireTurnstile = false;
   let turnstileSiteKey = '';
@@ -167,6 +172,16 @@ export default async function RootLayout({
     enableRegistration = config.SiteConfig.EnableRegistration || false;
     requireRegistrationInviteCode =
       config.SiteConfig.RequireRegistrationInviteCode || false;
+    registrationRequireEmailVerification =
+      config.SiteConfig.RegistrationRequireEmailVerification || false;
+    registrationEmailDomainAllowlist =
+      config.SiteConfig.RegistrationEmailDomainAllowlist || [];
+    registrationBlockEmailAliases =
+      config.SiteConfig.RegistrationBlockEmailAliases || false;
+    registrationRequireApproval =
+      config.SiteConfig.RegistrationRequireApproval || false;
+    registrationApprovalQuestion =
+      config.SiteConfig.RegistrationApprovalQuestion || '';
     loginRequireTurnstile = config.SiteConfig.LoginRequireTurnstile || false;
     registrationRequireTurnstile =
       config.SiteConfig.RegistrationRequireTurnstile || false;
@@ -270,6 +285,12 @@ export default async function RootLayout({
     PROGRESS_THUMB_CUSTOM_URL: progressThumbCustomUrl,
     ENABLE_REGISTRATION: enableRegistration,
     REQUIRE_REGISTRATION_INVITE_CODE: requireRegistrationInviteCode,
+    REGISTRATION_REQUIRE_EMAIL_VERIFICATION:
+      registrationRequireEmailVerification,
+    REGISTRATION_EMAIL_DOMAIN_ALLOWLIST: registrationEmailDomainAllowlist,
+    REGISTRATION_BLOCK_EMAIL_ALIASES: registrationBlockEmailAliases,
+    REGISTRATION_REQUIRE_APPROVAL: registrationRequireApproval,
+    REGISTRATION_APPROVAL_QUESTION: registrationApprovalQuestion,
     LOGIN_REQUIRE_TURNSTILE: loginRequireTurnstile,
     REGISTRATION_REQUIRE_TURNSTILE: registrationRequireTurnstile,
     TURNSTILE_SITE_KEY: turnstileSiteKey,

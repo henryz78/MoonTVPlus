@@ -1198,6 +1198,60 @@ export abstract class BaseRedisStorage implements IStorage {
     }
   }
 
+  async createUserWithHashedPassword(
+    userName: string,
+    passwordHash: string,
+    role: 'owner' | 'admin' | 'user' = 'user',
+    createdAt = Date.now(),
+    tags?: string[],
+    oidcSub?: string,
+    enabledApis?: string[],
+    banned?: boolean,
+    email?: string
+  ): Promise<void> {
+    const userInfo: Record<string, string> = {
+      role,
+      banned: banned ? 'true' : 'false',
+      password: passwordHash,
+      created_at: createdAt.toString(),
+      playrecord_migrated: 'true',
+      favorite_migrated: 'true',
+      skip_migrated: 'true',
+    };
+
+    if (tags && tags.length > 0) {
+      userInfo.tags = JSON.stringify(tags);
+    }
+
+    if (enabledApis && enabledApis.length > 0) {
+      userInfo.enabledApis = JSON.stringify(enabledApis);
+    }
+
+    if (oidcSub) {
+      userInfo.oidcSub = oidcSub;
+      await this.withRetry(() =>
+        this.adapter.set(this.oidcSubKey(oidcSub), userName)
+      );
+    }
+
+    if (email) {
+      userInfo.email = email;
+    }
+
+    await this.withRetry(() =>
+      this.adapter.hSet(this.userInfoKey(userName), userInfo)
+    );
+
+    await this.withRetry(() =>
+      this.adapter.zAdd(this.userListKey(), {
+        score: createdAt,
+        value: userName,
+      })
+    );
+
+    userInfoCache?.delete(userName);
+  }
+
   // 验证用户密码（新版本）
   async verifyUserV2(userName: string, password: string): Promise<boolean> {
     const userInfo = await this.withRetry(() =>
@@ -2219,6 +2273,10 @@ export abstract class BaseRedisStorage implements IStorage {
     return `u:${userName}:mr`;
   }
 
+  private registrationRequestsKey() {
+    return 'registration_requests:all';
+  }
+
   async getAllMovieRequests(): Promise<import('./types').MovieRequest[]> {
     const data = await this.withRetry(() =>
       this.adapter.hGetAll(this.movieRequestsKey())
@@ -2297,6 +2355,80 @@ export abstract class BaseRedisStorage implements IStorage {
     );
   }
 
+  async getAllRegistrationRequests(
+    status?: import('./types').RegistrationRequest['status']
+  ): Promise<import('./types').RegistrationRequest[]> {
+    const data = await this.withRetry(() =>
+      this.adapter.hGetAll(this.registrationRequestsKey())
+    );
+    if (!data || Object.keys(data).length === 0) return [];
+    return Object.values(data)
+      .map((value) => JSON.parse(value) as import('./types').RegistrationRequest)
+      .filter((request) => !status || request.status === status)
+      .sort((a, b) => b.createdAt - a.createdAt);
+  }
+
+  async getRegistrationRequest(
+    id: string
+  ): Promise<import('./types').RegistrationRequest | null> {
+    const value = await this.withRetry(() =>
+      this.adapter.hGet(this.registrationRequestsKey(), id)
+    );
+    return value
+      ? (JSON.parse(value) as import('./types').RegistrationRequest)
+      : null;
+  }
+
+  async createRegistrationRequest(
+    request: import('./types').RegistrationRequest
+  ): Promise<void> {
+    await this.withRetry(() =>
+      this.adapter.hSet(
+        this.registrationRequestsKey(),
+        request.id,
+        JSON.stringify(request)
+      )
+    );
+  }
+
+  async updateRegistrationRequest(
+    id: string,
+    updates: Partial<import('./types').RegistrationRequest>
+  ): Promise<void> {
+    const existing = await this.getRegistrationRequest(id);
+    if (!existing) throw new Error('注册申请不存在');
+    await this.createRegistrationRequest({
+      ...existing,
+      ...updates,
+      updatedAt: Date.now(),
+    });
+  }
+
+  async deleteRegistrationRequest(id: string): Promise<void> {
+    await this.withRetry(() =>
+      this.adapter.hDel(this.registrationRequestsKey(), id)
+    );
+  }
+
+  async findRegistrationRequestByUsername(
+    username: string
+  ): Promise<import('./types').RegistrationRequest | null> {
+    const requests = await this.getAllRegistrationRequests('pending');
+    return requests.find((request) => request.username === username) || null;
+  }
+
+  async findRegistrationRequestByEmail(
+    normalizedEmail: string
+  ): Promise<import('./types').RegistrationRequest | null> {
+    const target = normalizedEmail.toLowerCase();
+    const requests = await this.getAllRegistrationRequests('pending');
+    return (
+      requests.find(
+        (request) => request.normalizedEmail?.toLowerCase() === target
+      ) || null
+    );
+  }
+
   // ---------- 用户邮箱相关 ----------
   async getUserEmail(userName: string): Promise<string | null> {
     const userInfo = await this.getUserInfoV2(userName);
@@ -2309,6 +2441,20 @@ export abstract class BaseRedisStorage implements IStorage {
     );
     // 清除缓存
     userInfoCache?.delete(userName);
+  }
+
+  async findUserByEmail(normalizedEmail: string): Promise<string | null> {
+    const target = normalizedEmail.toLowerCase();
+    const { users } = await this.getUserListV2(0, 1000, process.env.USERNAME);
+
+    for (const user of users) {
+      const userInfo = await this.getUserInfoV2(user.username);
+      if (userInfo?.email?.toLowerCase() === target) {
+        return user.username;
+      }
+    }
+
+    return null;
   }
 
   async getEmailNotificationPreference(userName: string): Promise<boolean> {

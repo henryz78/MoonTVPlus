@@ -17,6 +17,7 @@ import {
   Notification,
   MovieRequest,
   PushSubscriptionRecord,
+  RegistrationRequest,
 } from './types';
 import { AdminConfig } from './admin.types';
 import { MangaReadRecord, MangaShelfItem } from './manga.types';
@@ -976,7 +977,8 @@ export class PostgresStorage implements IStorage {
     tags?: string[],
     oidcSub?: string,
     enabledApis?: string[],
-    banned?: boolean
+    banned?: boolean,
+    email?: string
   ): Promise<void> {
     try {
       await this.db
@@ -984,10 +986,10 @@ export class PostgresStorage implements IStorage {
           `
           INSERT INTO users (
             username, password_hash, role, banned, tags, oidc_sub,
-            enabled_apis, created_at, playrecord_migrated,
+            enabled_apis, email, created_at, playrecord_migrated,
             favorite_migrated, skip_migrated
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 1, 1, 1)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 1, 1, 1)
         `
         )
         .bind(
@@ -998,6 +1000,7 @@ export class PostgresStorage implements IStorage {
           tags ? JSON.stringify(tags) : null,
           oidcSub || null,
           enabledApis ? JSON.stringify(enabledApis) : null,
+          email || null,
           createdAt
         )
         .run();
@@ -1034,6 +1037,20 @@ export class PostgresStorage implements IStorage {
     } catch (err) {
       console.error('PostgresStorage.setUserEmail error:', err);
       throw err;
+    }
+  }
+
+  async findUserByEmail(normalizedEmail: string): Promise<string | null> {
+    try {
+      const result = await this.db
+        .prepare('SELECT username FROM users WHERE lower(email) = $1 LIMIT 1')
+        .bind(normalizedEmail.toLowerCase())
+        .first();
+
+      return result ? (result.username as string) : null;
+    } catch (err) {
+      console.error('PostgresStorage.findUserByEmail error:', err);
+      return null;
     }
   }
 
@@ -3326,6 +3343,176 @@ export class PostgresStorage implements IStorage {
     }
   }
 
+  async getAllRegistrationRequests(
+    status?: RegistrationRequest['status']
+  ): Promise<RegistrationRequest[]> {
+    try {
+      const query = status
+        ? this.db
+            .prepare(
+              'SELECT * FROM registration_requests WHERE status = $1 ORDER BY created_at DESC'
+            )
+            .bind(status)
+        : this.db
+            .prepare('SELECT * FROM registration_requests ORDER BY created_at DESC');
+      const results = await query.all();
+
+      if (!results.results) return [];
+      return results.results.map((row) => this.rowToRegistrationRequest(row));
+    } catch (err) {
+      console.error('PostgresStorage.getAllRegistrationRequests error:', err);
+      return [];
+    }
+  }
+
+  async getRegistrationRequest(id: string): Promise<RegistrationRequest | null> {
+    try {
+      const result = await this.db
+        .prepare('SELECT * FROM registration_requests WHERE id = $1')
+        .bind(id)
+        .first();
+
+      return result ? this.rowToRegistrationRequest(result) : null;
+    } catch (err) {
+      console.error('PostgresStorage.getRegistrationRequest error:', err);
+      return null;
+    }
+  }
+
+  async createRegistrationRequest(
+    request: RegistrationRequest
+  ): Promise<void> {
+    try {
+      await this.db
+        .prepare(
+          `
+          INSERT INTO registration_requests (
+            id, username, password_hash, email, normalized_email,
+            approval_question, approval_answer, status, created_at, updated_at,
+            reviewed_at, reviewed_by, reject_reason
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        `
+        )
+        .bind(
+          request.id,
+          request.username,
+          request.passwordHash,
+          request.email || null,
+          request.normalizedEmail || null,
+          request.approvalQuestion || null,
+          request.approvalAnswer || null,
+          request.status,
+          request.createdAt,
+          request.updatedAt,
+          request.reviewedAt || null,
+          request.reviewedBy || null,
+          request.rejectReason || null
+        )
+        .run();
+    } catch (err) {
+      console.error('PostgresStorage.createRegistrationRequest error:', err);
+      throw err;
+    }
+  }
+
+  async updateRegistrationRequest(
+    id: string,
+    updates: Partial<RegistrationRequest>
+  ): Promise<void> {
+    try {
+      const existing = await this.getRegistrationRequest(id);
+      if (!existing) throw new Error('注册申请不存在');
+      const request = { ...existing, ...updates, updatedAt: Date.now() };
+
+      await this.db
+        .prepare(
+          `
+          UPDATE registration_requests
+          SET username = $1, password_hash = $2, email = $3,
+              normalized_email = $4, approval_question = $5,
+              approval_answer = $6, status = $7, created_at = $8,
+              updated_at = $9, reviewed_at = $10, reviewed_by = $11,
+              reject_reason = $12
+          WHERE id = $13
+        `
+        )
+        .bind(
+          request.username,
+          request.passwordHash,
+          request.email || null,
+          request.normalizedEmail || null,
+          request.approvalQuestion || null,
+          request.approvalAnswer || null,
+          request.status,
+          request.createdAt,
+          request.updatedAt,
+          request.reviewedAt || null,
+          request.reviewedBy || null,
+          request.rejectReason || null,
+          id
+        )
+        .run();
+    } catch (err) {
+      console.error('PostgresStorage.updateRegistrationRequest error:', err);
+      throw err;
+    }
+  }
+
+  async deleteRegistrationRequest(id: string): Promise<void> {
+    try {
+      await this.db
+        .prepare('DELETE FROM registration_requests WHERE id = $1')
+        .bind(id)
+        .run();
+    } catch (err) {
+      console.error('PostgresStorage.deleteRegistrationRequest error:', err);
+      throw err;
+    }
+  }
+
+  async findRegistrationRequestByUsername(
+    username: string
+  ): Promise<RegistrationRequest | null> {
+    try {
+      const result = await this.db
+        .prepare(
+          'SELECT * FROM registration_requests WHERE username = $1 AND status = $2 ORDER BY created_at DESC LIMIT 1'
+        )
+        .bind(username, 'pending')
+        .first();
+
+      return result ? this.rowToRegistrationRequest(result) : null;
+    } catch (err) {
+      console.error(
+        'PostgresStorage.findRegistrationRequestByUsername error:',
+        err
+      );
+      return null;
+    }
+  }
+
+  async findRegistrationRequestByEmail(
+    normalizedEmail: string
+  ): Promise<RegistrationRequest | null> {
+    try {
+      const result = await this.db
+        .prepare(
+          'SELECT * FROM registration_requests WHERE normalized_email = $1 AND status = $2 ORDER BY created_at DESC LIMIT 1'
+        )
+        .bind(normalizedEmail.toLowerCase(), 'pending')
+        .first();
+
+      return result ? this.rowToRegistrationRequest(result) : null;
+    } catch (err) {
+      console.error(
+        'PostgresStorage.findRegistrationRequestByEmail error:',
+        err
+      );
+      return null;
+    }
+  }
+
   private rowToMovieRequest(row: any): MovieRequest {
     return {
       id: row.id,
@@ -3344,6 +3531,24 @@ export class PostgresStorage implements IStorage {
       fulfilledAt: row.fulfilled_at || undefined,
       fulfilledSource: row.fulfilled_source || undefined,
       fulfilledId: row.fulfilled_id || undefined,
+    };
+  }
+
+  private rowToRegistrationRequest(row: any): RegistrationRequest {
+    return {
+      id: row.id as string,
+      username: row.username as string,
+      passwordHash: row.password_hash as string,
+      email: (row.email as string | null) || undefined,
+      normalizedEmail: (row.normalized_email as string | null) || undefined,
+      approvalQuestion: (row.approval_question as string | null) || undefined,
+      approvalAnswer: (row.approval_answer as string | null) || undefined,
+      status: row.status as RegistrationRequest['status'],
+      createdAt: row.created_at as number,
+      updatedAt: row.updated_at as number,
+      reviewedAt: (row.reviewed_at as number | null) || undefined,
+      reviewedBy: (row.reviewed_by as string | null) || undefined,
+      rejectReason: (row.reject_reason as string | null) || undefined,
     };
   }
 

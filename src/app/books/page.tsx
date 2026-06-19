@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
 import { BookSource } from '@/lib/book.types';
+import { useSite } from '@/components/SiteProvider';
 
 function BooksHomeSkeleton() {
   return (
@@ -63,6 +64,7 @@ export default function BooksHomePage() {
   const [sources, setSources] = useState<BookSource[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { siteName } = useSite();
 
   useEffect(() => {
     if (
@@ -103,7 +105,7 @@ export default function BooksHomePage() {
           <div>
             <div className='inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white/70 px-3 py-1 text-xs font-medium text-emerald-700 shadow-sm backdrop-blur dark:border-emerald-500/20 dark:bg-gray-950/50 dark:text-emerald-200'>
               <Sparkles className='h-3.5 w-3.5' />
-              MoonTVPlus Reading Library
+              {siteName} Reading Library
             </div>
             <h1 className='mt-5 max-w-3xl text-4xl font-black tracking-[-0.06em] text-emerald-950 dark:text-emerald-50 sm:text-6xl lg:text-7xl'>
               电子书馆

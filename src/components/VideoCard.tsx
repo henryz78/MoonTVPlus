@@ -34,11 +34,13 @@ import {
   subscribeToDataUpdates,
 } from '@/lib/db.client';
 import { isNetdiskSource } from '@/lib/netdisk/source';
+import type { TMDBVideoItem } from '@/lib/tmdb.client';
 import {
   base58Decode,
   clearBangumiImageFallbackCacheIfFailed,
   getBangumiImageFallbackUrl,
   getDoubanImageFallbackUrl,
+  getUnavailablePosterPlaceholder,
   markBangumiImageFallbackActive,
   processImageUrl,
   tryApplyBangumiImageFallback,
@@ -52,7 +54,6 @@ import { ImagePlaceholder } from '@/components/ImagePlaceholder';
 import ImageViewer from '@/components/ImageViewer';
 import MobileActionSheet from '@/components/MobileActionSheet';
 import TrailerPickerDialog from '@/components/TrailerPickerDialog';
-import type { TMDBVideoItem } from '@/lib/tmdb.client';
 
 export interface VideoCardProps {
   id?: string;
@@ -150,6 +151,10 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
       </svg>
     `)}`;
     }, []);
+    const unavailablePosterPlaceholder = useMemo(
+      () => getUnavailablePosterPlaceholder(),
+      []
+    );
     const processedPoster = useMemo(
       () =>
         actualPoster
@@ -221,9 +226,13 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
 
     useEffect(() => {
       setDisplayPoster(processedPoster);
+      setIsLoading(false);
     }, [processedPoster]);
 
     const bangumiImageTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+      null
+    );
+    const iqiyiImageTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
       null
     );
 
@@ -259,6 +268,39 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
       if (bangumiImageTimeoutRef.current) {
         clearTimeout(bangumiImageTimeoutRef.current);
         bangumiImageTimeoutRef.current = null;
+      }
+    }, []);
+
+    useEffect(() => {
+      if (iqiyiImageTimeoutRef.current) {
+        clearTimeout(iqiyiImageTimeoutRef.current);
+        iqiyiImageTimeoutRef.current = null;
+      }
+
+      if (
+        !actualPoster.includes('iqiyizyimg.com') ||
+        displayPoster === unavailablePosterPlaceholder
+      ) {
+        return;
+      }
+
+      iqiyiImageTimeoutRef.current = setTimeout(() => {
+        setDisplayPoster(unavailablePosterPlaceholder);
+        setIsLoading(true);
+      }, 3500);
+
+      return () => {
+        if (iqiyiImageTimeoutRef.current) {
+          clearTimeout(iqiyiImageTimeoutRef.current);
+          iqiyiImageTimeoutRef.current = null;
+        }
+      };
+    }, [actualPoster, displayPoster, unavailablePosterPlaceholder]);
+
+    const clearIqiyiImageTimeout = useCallback(() => {
+      if (iqiyiImageTimeoutRef.current) {
+        clearTimeout(iqiyiImageTimeoutRef.current);
+        iqiyiImageTimeoutRef.current = null;
       }
     }, []);
 
@@ -678,7 +720,6 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
       return '已上映';
     }, [isUpcoming, daysUntilRelease]);
 
-
     const openTrailerPicker = useCallback(async () => {
       if (!actualTitle) return;
       setShowMobileActions(false);
@@ -1013,6 +1054,7 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
                 onLoadingComplete={() => {
                   setIsLoading(true);
                   clearBangumiImageTimeout();
+                  clearIqiyiImageTimeout();
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -1020,6 +1062,13 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
                 }}
                 onError={(e) => {
                   const img = e.currentTarget as HTMLImageElement;
+                  if (actualPoster.includes('iqiyizyimg.com')) {
+                    clearIqiyiImageTimeout();
+                    setDisplayPoster(unavailablePosterPlaceholder);
+                    setIsLoading(true);
+                    return;
+                  }
+
                   const doubanFallbackPoster =
                     getDoubanImageFallbackUrl(actualPoster);
                   if (
@@ -2023,7 +2072,6 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
             setShowImageViewer(true);
           }}
         />
-
 
         <TrailerPickerDialog
           isOpen={showTrailerPicker}

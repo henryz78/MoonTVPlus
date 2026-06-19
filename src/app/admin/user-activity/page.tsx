@@ -1,6 +1,6 @@
 'use client';
 
-import { Activity, RefreshCw, Search, UserRound } from 'lucide-react';
+import { Activity, RefreshCw, Search, UserRound, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import PageLayout from '@/components/PageLayout';
@@ -55,6 +55,8 @@ interface DetailResponse {
   };
   records: DetailRecord[];
 }
+
+const EMPTY_USERS: OverviewRow[] = [];
 
 const roleText: Record<Role, string> = {
   owner: '站长',
@@ -159,11 +161,18 @@ export default function UserActivityPage() {
     }
   }, []);
 
+  const closeDetail = () => {
+    setSelectedUsername(null);
+    setDetail(null);
+    setDetailError('');
+    setDetailLoading(false);
+  };
+
   useEffect(() => {
     void loadOverview();
   }, [loadOverview]);
 
-  const users = overview?.users || [];
+  const users = overview?.users || EMPTY_USERS;
   const totalPages = overview?.totalPages || 0;
   const selectedOverviewUser = useMemo(
     () => users.find((item) => item.username === selectedUsername) || null,
@@ -218,175 +227,193 @@ export default function UserActivityPage() {
           </div>
         )}
 
-        <div className='grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]'>
-          <section className='overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900'>
-            <div className='overflow-x-auto'>
-              <div className='min-w-[760px]'>
-                <div className='grid grid-cols-[1fr_120px_100px_1.2fr_96px] gap-3 border-b border-gray-200 bg-gray-50 px-4 py-3 text-xs font-semibold text-gray-500 dark:border-gray-800 dark:bg-gray-800/60 dark:text-gray-400'>
-                  <span>用户</span>
-                  <span>活跃</span>
-                  <span>记录</span>
-                  <span>最近观看</span>
-                  <span>操作</span>
-                </div>
+        <section className='overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900'>
+          <div className='overflow-x-auto'>
+            <div className='min-w-[760px]'>
+              <div className='grid grid-cols-[1fr_120px_100px_1.2fr_96px] gap-3 border-b border-gray-200 bg-gray-50 px-4 py-3 text-xs font-semibold text-gray-500 dark:border-gray-800 dark:bg-gray-800/60 dark:text-gray-400'>
+                <span>用户</span>
+                <span>活跃</span>
+                <span>记录</span>
+                <span>最近观看</span>
+                <span>操作</span>
+              </div>
 
-                {overviewLoading && users.length === 0 ? (
-                  <div className='p-8 text-center text-sm text-gray-500'>
+              {overviewLoading && users.length === 0 ? (
+                <div className='p-8 text-center text-sm text-gray-500'>
+                  加载中...
+                </div>
+              ) : users.length === 0 ? (
+                <div className='p-8 text-center text-sm text-gray-500'>
+                  暂无用户动态
+                </div>
+              ) : (
+                users.map((user) => (
+                  <div
+                    key={user.username}
+                    className='grid grid-cols-[1fr_120px_100px_1.2fr_96px] gap-3 border-b border-gray-100 px-4 py-3 text-sm last:border-b-0 dark:border-gray-800'
+                  >
+                    <div className='min-w-0'>
+                      <div className='flex items-center gap-2 font-medium text-gray-900 dark:text-gray-100'>
+                        <UserRound className='h-4 w-4 flex-none text-gray-400' />
+                        <span className='truncate'>{user.username}</span>
+                      </div>
+                      <div className='mt-1 text-xs text-gray-500'>
+                        {roleText[user.role]}
+                        {user.banned ? ' · 已封禁' : ''}
+                      </div>
+                    </div>
+                    <span
+                      className={
+                        user.isOnline
+                          ? 'text-green-600 dark:text-green-400'
+                          : 'text-gray-600 dark:text-gray-300'
+                      }
+                    >
+                      {formatActivity(user.lastActiveAt, user.isOnline)}
+                    </span>
+                    <span>{user.playRecordCount} 条</span>
+                    <span className='min-w-0 truncate text-gray-700 dark:text-gray-300'>
+                      {user.latestPlayRecord
+                        ? `${user.latestPlayRecord.title} · 第 ${user.latestPlayRecord.episode} 集 · ${user.latestPlayRecord.progressPercent}%`
+                        : '暂无观看记录'}
+                    </span>
+                    <button
+                      type='button'
+                      onClick={() => loadDetail(user.username)}
+                      className='rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700'
+                    >
+                      查看详情
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className='flex flex-col gap-3 border-t border-gray-200 px-4 py-3 text-sm text-gray-500 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800'>
+            <span>共 {overview?.total || 0} 个用户</span>
+            <div className='flex items-center gap-2'>
+              <button
+                type='button'
+                disabled={page <= 1}
+                onClick={() => setPage((value) => Math.max(1, value - 1))}
+                className='rounded-md border border-gray-300 px-2 py-1 disabled:opacity-50 dark:border-gray-700'
+              >
+                上一页
+              </button>
+              <span>
+                {page} / {Math.max(1, totalPages)}
+              </span>
+              <button
+                type='button'
+                disabled={totalPages === 0 || page >= totalPages}
+                onClick={() => setPage((value) => value + 1)}
+                className='rounded-md border border-gray-300 px-2 py-1 disabled:opacity-50 dark:border-gray-700'
+              >
+                下一页
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {selectedUsername && (
+          <div
+            className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4'
+            onClick={closeDetail}
+          >
+            <div
+              className='flex max-h-[85vh] w-full max-w-2xl flex-col rounded-lg border border-gray-200 bg-white shadow-xl dark:border-gray-800 dark:bg-gray-900'
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className='flex items-start justify-between gap-4 border-b border-gray-200 p-4 dark:border-gray-800'>
+                <div>
+                  <h2 className='text-base font-semibold text-gray-900 dark:text-gray-100'>
+                    {selectedUsername} 的观看记录
+                  </h2>
+                  {detailUser && (
+                    <p className='mt-1 text-xs text-gray-500'>
+                      最近活跃：
+                      {formatActivity(
+                        detailUser.lastActiveAt,
+                        selectedOverviewUser?.username === detailUser.username
+                          ? selectedOverviewUser.isOnline
+                          : undefined
+                      )}
+                      {detailUser.lastActiveAt ? (
+                        <>
+                          {' · '}
+                          精确时间：{formatDateTime(detailUser.lastActiveAt)}
+                        </>
+                      ) : null}
+                      {' · '}
+                      观看记录：{detailUser.playRecordCount} 条
+                    </p>
+                  )}
+                </div>
+                <button
+                  type='button'
+                  onClick={closeDetail}
+                  className='rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-200'
+                  aria-label='关闭'
+                >
+                  <X className='h-4 w-4' />
+                </button>
+              </div>
+
+              <div className='overflow-y-auto p-4'>
+                {detailLoading ? (
+                  <div className='py-10 text-center text-sm text-gray-500'>
                     加载中...
                   </div>
-                ) : users.length === 0 ? (
-                  <div className='p-8 text-center text-sm text-gray-500'>
-                    暂无用户动态
+                ) : detailError ? (
+                  <div className='rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300'>
+                    {detailError}
+                  </div>
+                ) : !detail ? (
+                  <div className='py-10 text-center text-sm text-gray-500'>
+                    选择用户查看详情
+                  </div>
+                ) : detail.records.length === 0 ? (
+                  <div className='py-10 text-center text-sm text-gray-500'>
+                    暂无观看记录
                   </div>
                 ) : (
-                  users.map((user) => (
-                    <div
-                      key={user.username}
-                      className='grid grid-cols-[1fr_120px_100px_1.2fr_96px] gap-3 border-b border-gray-100 px-4 py-3 text-sm last:border-b-0 dark:border-gray-800'
-                    >
-                      <div className='min-w-0'>
-                        <div className='flex items-center gap-2 font-medium text-gray-900 dark:text-gray-100'>
-                          <UserRound className='h-4 w-4 flex-none text-gray-400' />
-                          <span className='truncate'>{user.username}</span>
-                        </div>
-                        <div className='mt-1 text-xs text-gray-500'>
-                          {roleText[user.role]}
-                          {user.banned ? ' · 已封禁' : ''}
+                  <div className='space-y-3'>
+                    {detail.records.map((record) => (
+                      <div
+                        key={record.key}
+                        className='flex gap-3 rounded-lg border border-gray-100 p-3 dark:border-gray-800'
+                      >
+                        {record.cover ? (
+                          <img
+                            src={record.cover}
+                            alt=''
+                            className='h-20 w-14 flex-none rounded object-cover'
+                          />
+                        ) : (
+                          <div className='h-20 w-14 flex-none rounded bg-gray-200 dark:bg-gray-800' />
+                        )}
+                        <div className='min-w-0 flex-1'>
+                          <div className='truncate font-medium text-gray-900 dark:text-gray-100'>
+                            {record.title}
+                          </div>
+                          <div className='mt-1 text-xs text-gray-500'>
+                            {record.source_name} · 第 {record.index} /{' '}
+                            {record.total_episodes || '?'} 集
+                          </div>
+                          <div className='mt-1 text-xs text-gray-500'>
+                            进度 {formatProgress(record)} ·{' '}
+                            {formatDateTime(record.save_time)}
+                          </div>
                         </div>
                       </div>
-                      <span
-                        className={
-                          user.isOnline
-                            ? 'text-green-600 dark:text-green-400'
-                            : 'text-gray-600 dark:text-gray-300'
-                        }
-                      >
-                        {formatActivity(user.lastActiveAt, user.isOnline)}
-                      </span>
-                      <span>{user.playRecordCount} 条</span>
-                      <span className='min-w-0 truncate text-gray-700 dark:text-gray-300'>
-                        {user.latestPlayRecord
-                          ? `${user.latestPlayRecord.title} · 第 ${user.latestPlayRecord.episode} 集 · ${user.latestPlayRecord.progressPercent}%`
-                          : '暂无观看记录'}
-                      </span>
-                      <button
-                        type='button'
-                        onClick={() => loadDetail(user.username)}
-                        className='rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700'
-                      >
-                        查看详情
-                      </button>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
-
-            <div className='flex flex-col gap-3 border-t border-gray-200 px-4 py-3 text-sm text-gray-500 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800'>
-              <span>共 {overview?.total || 0} 个用户</span>
-              <div className='flex items-center gap-2'>
-                <button
-                  type='button'
-                  disabled={page <= 1}
-                  onClick={() => setPage((value) => Math.max(1, value - 1))}
-                  className='rounded-md border border-gray-300 px-2 py-1 disabled:opacity-50 dark:border-gray-700'
-                >
-                  上一页
-                </button>
-                <span>
-                  {page} / {Math.max(1, totalPages)}
-                </span>
-                <button
-                  type='button'
-                  disabled={totalPages === 0 || page >= totalPages}
-                  onClick={() => setPage((value) => value + 1)}
-                  className='rounded-md border border-gray-300 px-2 py-1 disabled:opacity-50 dark:border-gray-700'
-                >
-                  下一页
-                </button>
-              </div>
-            </div>
-          </section>
-
-          <aside className='rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900'>
-            <div className='mb-3'>
-              <h2 className='text-base font-semibold text-gray-900 dark:text-gray-100'>
-                {selectedUsername
-                  ? `${selectedUsername} 的观看记录`
-                  : '观看记录详情'}
-              </h2>
-              {detailUser && (
-                <p className='mt-1 text-xs text-gray-500'>
-                  最近活跃：
-                  {formatActivity(
-                    detailUser.lastActiveAt,
-                    selectedOverviewUser?.username === detailUser.username
-                      ? selectedOverviewUser.isOnline
-                      : undefined
-                  )}
-                  {detailUser.lastActiveAt ? (
-                    <>
-                      {' · '}
-                      精确时间：{formatDateTime(detailUser.lastActiveAt)}
-                    </>
-                  ) : null}
-                  {' · '}
-                  观看记录：{detailUser.playRecordCount} 条
-                </p>
-              )}
-            </div>
-
-            {detailLoading ? (
-              <div className='py-10 text-center text-sm text-gray-500'>
-                加载中...
-              </div>
-            ) : detailError ? (
-              <div className='rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300'>
-                {detailError}
-              </div>
-            ) : !detail ? (
-              <div className='py-10 text-center text-sm text-gray-500'>
-                选择用户查看详情
-              </div>
-            ) : detail.records.length === 0 ? (
-              <div className='py-10 text-center text-sm text-gray-500'>
-                暂无观看记录
-              </div>
-            ) : (
-              <div className='space-y-3'>
-                {detail.records.map((record) => (
-                  <div
-                    key={record.key}
-                    className='flex gap-3 rounded-lg border border-gray-100 p-3 dark:border-gray-800'
-                  >
-                    {record.cover ? (
-                      <img
-                        src={record.cover}
-                        alt=''
-                        className='h-20 w-14 flex-none rounded object-cover'
-                      />
-                    ) : (
-                      <div className='h-20 w-14 flex-none rounded bg-gray-200 dark:bg-gray-800' />
-                    )}
-                    <div className='min-w-0 flex-1'>
-                      <div className='truncate font-medium text-gray-900 dark:text-gray-100'>
-                        {record.title}
-                      </div>
-                      <div className='mt-1 text-xs text-gray-500'>
-                        {record.source_name} · 第 {record.index} /{' '}
-                        {record.total_episodes || '?'} 集
-                      </div>
-                      <div className='mt-1 text-xs text-gray-500'>
-                        进度 {formatProgress(record)} ·{' '}
-                        {formatDateTime(record.save_time)}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </aside>
-        </div>
+          </div>
+        )}
       </div>
     </PageLayout>
   );

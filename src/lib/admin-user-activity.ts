@@ -50,7 +50,7 @@ export interface UserActivityDetailResult {
   records: Array<PlayRecord & { key: string }>;
 }
 
-const ONLINE_THRESHOLD_MS = 2 * 60 * 1000;
+export const ONLINE_THRESHOLD_MS = 2 * 60 * 1000;
 const ADMIN_VISIBLE_FETCH_LIMIT = 1000;
 
 function httpError(message: string, status: number) {
@@ -97,7 +97,9 @@ async function getConfigUser(username: string) {
   );
 }
 
-async function getOperatorRole(username: string): Promise<UserActivityRole> {
+export async function getOperatorRole(
+  username: string
+): Promise<UserActivityRole> {
   if (username === process.env.USERNAME) return 'owner';
 
   const info = await db.getUserInfoV2(username);
@@ -111,7 +113,7 @@ async function getOperatorRole(username: string): Promise<UserActivityRole> {
   return configUser?.role || 'user';
 }
 
-async function getTargetUser(
+export async function getTargetUser(
   username: string
 ): Promise<UserActivityUser | null> {
   if (username === process.env.USERNAME) {
@@ -150,7 +152,9 @@ function latestRecordFrom(records: Record<string, PlayRecord>) {
   return entries[0] || null;
 }
 
-async function getLastActiveAt(username: string): Promise<number | null> {
+export async function getLastActiveAt(
+  username: string
+): Promise<number | null> {
   const devices = await getUserDevices(username);
   return devices.reduce<number | null>((current, device) => {
     if (!current || device.lastUsed > current) return device.lastUsed;
@@ -158,7 +162,7 @@ async function getLastActiveAt(username: string): Promise<number | null> {
   }, null);
 }
 
-function newestActivityTime(
+export function newestActivityTime(
   deviceLastActiveAt: number | null,
   latestRecordSaveTime?: number
 ) {

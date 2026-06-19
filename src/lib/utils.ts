@@ -391,12 +391,8 @@ export function tryApplyBangumiImageFallback(
 /**
  * 处理图片 URL，根据用户设置使用相应的代理
  */
-export function processImageUrl(originalUrl: string): string {
-  if (!originalUrl) return originalUrl;
-
-  // 屏蔽爱奇艺失效海报，直接显示自定义 SVG 暂无封面占位图，彻底避免超时丢包和卡死转圈
-  if (originalUrl.includes('iqiyizyimg.com')) {
-    return `data:image/svg+xml;utf8,${encodeURIComponent(`
+export function getUnavailablePosterPlaceholder(): string {
+  return `data:image/svg+xml;utf8,${encodeURIComponent(`
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600">
         <rect width="400" height="600" fill="#f3f4f6"/>
         <rect x="20" y="20" width="360" height="560" rx="10" fill="none" stroke="#d1d5db" stroke-width="4" stroke-dasharray="8 8"/>
@@ -407,7 +403,10 @@ export function processImageUrl(originalUrl: string): string {
         <text x="200" y="400" fill="#6b7280" font-size="28" font-family="sans-serif" font-weight="bold" text-anchor="middle">暂无封面</text>
       </svg>
     `)}`;
-  }
+}
+
+export function processImageUrl(originalUrl: string): string {
+  if (!originalUrl) return originalUrl;
 
   // 如果已经是代理URL，直接返回
   if (originalUrl.startsWith('/api/image-proxy')) {

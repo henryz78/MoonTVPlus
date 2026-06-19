@@ -4,6 +4,7 @@
 
 import {
   Activity,
+  BarChart3,
   Bell,
   Check,
   ChevronDown,
@@ -1363,6 +1364,11 @@ export const UserMenu: React.FC = () => {
     router.push('/admin/user-activity');
   };
 
+  const handlePlayStats = () => {
+    setIsOpen(false);
+    router.push('/play-stats');
+  };
+
   const handleRegistrationRequests = () => {
     setIsOpen(false);
     router.push('/admin/registration-requests');
@@ -2306,6 +2312,17 @@ export const UserMenu: React.FC = () => {
             <Settings className='w-4 h-4 text-gray-500 dark:text-gray-400' />
             <span className='font-medium'>设置</span>
           </button>
+
+          {/* 播放统计按钮 */}
+          {storageType !== 'localstorage' && (
+            <button
+              onClick={handlePlayStats}
+              className='w-full px-3 py-2 text-left flex items-center gap-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm'
+            >
+              <BarChart3 className='w-4 h-4 text-gray-500 dark:text-gray-400' />
+              <span className='font-medium'>播放统计</span>
+            </button>
+          )}
 
           {/* 管理面板按钮 */}
           {showAdminPanel && (

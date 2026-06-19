@@ -10,6 +10,7 @@ import {
   Link as LinkIcon,
   ListVideo,
   Music,
+  Users,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Suspense, useEffect, useState } from 'react';
@@ -83,6 +84,7 @@ function HomeClient() {
   const [directPlayUrl, setDirectPlayUrl] = useState('');
   const [directPlaySubmitting, setDirectPlaySubmitting] = useState(false);
   const [toast, setToast] = useState<ToastProps | null>(null);
+  const [onlineCount, setOnlineCount] = useState<number | null>(null);
 
   const detectNetdiskLink = (
     url: string
@@ -283,6 +285,37 @@ function HomeClient() {
   // 加载首页模块配置
   useEffect(() => {
     loadHomeLayoutSettings();
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadOnlineCount = async () => {
+      try {
+        const response = await fetch('/api/online-count', {
+          cache: 'no-store',
+        });
+        if (response.status === 204) {
+          if (mounted) setOnlineCount(null);
+          return;
+        }
+        if (!response.ok) return;
+        const data = await response.json();
+        if (mounted && typeof data.onlineCount === 'number') {
+          setOnlineCount(data.onlineCount);
+        }
+      } catch {
+        if (mounted) setOnlineCount(null);
+      }
+    };
+
+    void loadOnlineCount();
+    const timer = window.setInterval(loadOnlineCount, 60_000);
+
+    return () => {
+      mounted = false;
+      window.clearInterval(timer);
+    };
   }, []);
 
   // 监听首页模块配置更新事件
@@ -887,6 +920,16 @@ function HomeClient() {
                 homeBannerEnabled ? '' : 'mt-[30px]'
               }`}
             >
+              {onlineCount !== null && (
+                <div
+                  className='mr-auto inline-flex items-center gap-1.5 rounded-lg bg-white/75 px-2.5 py-1.5 text-xs text-gray-600 shadow-sm ring-1 ring-gray-200 backdrop-blur dark:bg-gray-900/75 dark:text-gray-300 dark:ring-gray-800'
+                  title='当前在线人数'
+                >
+                  <Users className='h-3.5 w-3.5 text-green-500' />
+                  当前在线 {onlineCount} 人
+                </div>
+              )}
+
               <button
                 onClick={handleDirectPlay}
                 className='p-1.5 rounded-lg text-blue-500 hover:text-blue-600 transition-colors'

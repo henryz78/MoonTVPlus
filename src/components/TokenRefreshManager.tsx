@@ -150,7 +150,6 @@ export function TokenRefreshManager() {
       // 跳过：刷新 API、登录、登出、注册等认证相关接口
       if (
         url.includes('/api/auth/refresh') ||
-        url.includes('/api/auth/activity') ||
         url.includes('/api/login') ||
         url.includes('/api/logout') ||
         url.includes('/api/register') ||

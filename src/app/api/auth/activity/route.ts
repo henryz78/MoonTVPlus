@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthInfoFromCookie } from '@/lib/auth';
 import { touchRefreshTokenLastUsed } from '@/lib/refresh-token';
+import { recordUserPresence } from '@/lib/user-presence';
 
 export const runtime = 'nodejs';
 
@@ -31,15 +32,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const touched = await touchRefreshTokenLastUsed(
+  await recordUserPresence(authInfo.username);
+
+  await touchRefreshTokenLastUsed(
     authInfo.username,
     authInfo.tokenId,
     authInfo.refreshToken
   );
-
-  if (!touched) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
 
   return NextResponse.json(
     { ok: true },

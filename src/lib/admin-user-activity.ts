@@ -1,5 +1,6 @@
 import { getConfig } from '@/lib/config';
 import { getUserDevices } from '@/lib/refresh-token';
+import { getUserPresence } from '@/lib/user-presence';
 import { PlayRecord } from '@/lib/types';
 
 import { db } from './db';
@@ -155,11 +156,14 @@ function latestRecordFrom(records: Record<string, PlayRecord>) {
 export async function getLastActiveAt(
   username: string
 ): Promise<number | null> {
-  const devices = await getUserDevices(username);
+  const [devices, presenceAt] = await Promise.all([
+    getUserDevices(username),
+    getUserPresence(username),
+  ]);
   return devices.reduce<number | null>((current, device) => {
     if (!current || device.lastUsed > current) return device.lastUsed;
     return current;
-  }, null);
+  }, presenceAt);
 }
 
 export function newestActivityTime(

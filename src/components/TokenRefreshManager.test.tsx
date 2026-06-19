@@ -14,17 +14,29 @@ describe('TokenRefreshManager', () => {
     jest.restoreAllMocks();
   });
 
-  it('does not refresh or retry when the background activity ping returns 401', async () => {
+  it('refreshes and retries when the background activity ping returns an expired access token', async () => {
+    let activityCalls = 0;
     const originalFetch = jest.fn(async (input: RequestInfo | URL) => {
       if (String(input).includes('/api/auth/refresh')) {
         return { ok: true, status: 200 } as Response;
+      }
+
+      activityCalls += 1;
+      if (activityCalls > 1) {
+        return {
+          ok: true,
+          status: 200,
+          clone: () => ({
+            text: async () => '',
+          }),
+        } as Response;
       }
 
       return {
         ok: false,
         status: 401,
         clone: () => ({
-          text: async () => 'Unauthorized',
+          text: async () => 'Access token expired',
         }),
       } as Response;
     });
@@ -39,9 +51,16 @@ describe('TokenRefreshManager', () => {
       method: 'POST',
     });
 
-    expect(response.status).toBe(401);
-    expect(originalFetch).toHaveBeenCalledTimes(1);
-    expect(originalFetch).toHaveBeenCalledWith('/api/auth/activity', {
+    expect(response.status).toBe(200);
+    expect(originalFetch).toHaveBeenCalledTimes(3);
+    expect(originalFetch).toHaveBeenNthCalledWith(1, '/api/auth/activity', {
+      method: 'POST',
+    });
+    expect(originalFetch).toHaveBeenNthCalledWith(2, '/api/auth/refresh', {
+      method: 'POST',
+      credentials: 'include',
+    });
+    expect(originalFetch).toHaveBeenNthCalledWith(3, '/api/auth/activity', {
       method: 'POST',
     });
   });

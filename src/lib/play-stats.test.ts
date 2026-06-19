@@ -2,6 +2,7 @@ import { getUserDevices } from '@/lib/refresh-token';
 
 import { db } from './db';
 import { getOnlineCount, getPlayStats } from './play-stats';
+import { getUserPresence } from './user-presence';
 
 jest.mock('./db', () => ({
   db: {
@@ -13,6 +14,10 @@ jest.mock('./db', () => ({
 
 jest.mock('@/lib/refresh-token', () => ({
   getUserDevices: jest.fn(),
+}));
+
+jest.mock('./user-presence', () => ({
+  getUserPresence: jest.fn(),
 }));
 
 const NOW = new Date('2026-06-18T20:00:00.000Z').getTime();
@@ -48,6 +53,7 @@ describe('play stats helpers', () => {
     process.env.USERNAME = 'owner';
     dateNowSpy = jest.spyOn(Date, 'now').mockReturnValue(NOW);
     (getUserDevices as jest.Mock).mockResolvedValue([]);
+    (getUserPresence as jest.Mock).mockResolvedValue(null);
     (db.getUserInfoV2 as jest.Mock).mockImplementation(async (username) => {
       if (username === 'admin') return { role: 'admin', banned: false };
       if (username === 'alice') return { role: 'user', banned: false };
@@ -133,6 +139,20 @@ describe('play stats helpers', () => {
     (db.getAllPlayRecords as jest.Mock).mockResolvedValue({});
     (getUserDevices as jest.Mock).mockImplementation(async (username) =>
       username === 'alice' ? [{ lastUsed: NOW - 30_000 }] : []
+    );
+
+    await expect(getOnlineCount()).resolves.toBe(1);
+  });
+
+  it('counts users online from presence even when device activity is missing', async () => {
+    (db.getUserListV2 as jest.Mock).mockResolvedValue({
+      users: [user('alice', 'user'), user('bob', 'user')],
+      total: 2,
+    });
+    (db.getAllPlayRecords as jest.Mock).mockResolvedValue({});
+    (getUserDevices as jest.Mock).mockResolvedValue([]);
+    (getUserPresence as jest.Mock).mockImplementation(async (username) =>
+      username === 'alice' ? NOW - 30_000 : null
     );
 
     await expect(getOnlineCount()).resolves.toBe(1);

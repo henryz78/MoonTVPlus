@@ -1,5 +1,6 @@
 import { getAuthInfoFromCookie } from '@/lib/auth';
 import { touchRefreshTokenLastUsed } from '@/lib/refresh-token';
+import { recordUserPresence } from '@/lib/user-presence';
 
 import { POST } from './route';
 
@@ -24,6 +25,10 @@ jest.mock('@/lib/refresh-token', () => ({
   touchRefreshTokenLastUsed: jest.fn(),
 }));
 
+jest.mock('@/lib/user-presence', () => ({
+  recordUserPresence: jest.fn(),
+}));
+
 const makeRequest = () => ({} as Parameters<typeof POST>[0]);
 
 describe('POST /api/auth/activity', () => {
@@ -39,6 +44,7 @@ describe('POST /api/auth/activity', () => {
       refreshExpires: Date.now() + 60_000,
     });
     (touchRefreshTokenLastUsed as jest.Mock).mockResolvedValue(true);
+    (recordUserPresence as jest.Mock).mockResolvedValue(1_800_000_000_000);
   });
 
   afterEach(() => {
@@ -57,6 +63,7 @@ describe('POST /api/auth/activity', () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({ error: '本地存储模式不支持活跃状态上报' });
     expect(touchRefreshTokenLastUsed).not.toHaveBeenCalled();
+    expect(recordUserPresence).not.toHaveBeenCalled();
   });
 
   it('rejects missing auth fields', async () => {
@@ -67,6 +74,7 @@ describe('POST /api/auth/activity', () => {
     expect(response.status).toBe(401);
     expect(response.body).toEqual({ error: 'Unauthorized' });
     expect(touchRefreshTokenLastUsed).not.toHaveBeenCalled();
+    expect(recordUserPresence).not.toHaveBeenCalled();
   });
 
   it('rejects expired refresh token metadata', async () => {
@@ -82,14 +90,16 @@ describe('POST /api/auth/activity', () => {
     expect(response.status).toBe(401);
     expect(response.body).toEqual({ error: 'Refresh token expired' });
     expect(touchRefreshTokenLastUsed).not.toHaveBeenCalled();
+    expect(recordUserPresence).not.toHaveBeenCalled();
   });
 
-  it('updates the current device lastUsed', async () => {
+  it('records user presence and updates the current device lastUsed', async () => {
     const response = await POST(makeRequest());
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ ok: true });
     expect(response.headers).toEqual({ 'Cache-Control': 'no-store' });
+    expect(recordUserPresence).toHaveBeenCalledWith('alice');
     expect(touchRefreshTokenLastUsed).toHaveBeenCalledWith(
       'alice',
       'token-1',
@@ -97,12 +107,13 @@ describe('POST /api/auth/activity', () => {
     );
   });
 
-  it('returns unauthorized when the token record cannot be touched', async () => {
+  it('keeps presence online when the device token record cannot be touched', async () => {
     (touchRefreshTokenLastUsed as jest.Mock).mockResolvedValue(false);
 
     const response = await POST(makeRequest());
 
-    expect(response.status).toBe(401);
-    expect(response.body).toEqual({ error: 'Unauthorized' });
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ ok: true });
+    expect(recordUserPresence).toHaveBeenCalledWith('alice');
   });
 });

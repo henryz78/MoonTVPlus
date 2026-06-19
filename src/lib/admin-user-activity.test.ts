@@ -2,11 +2,13 @@ import { getUserDevices } from '@/lib/refresh-token';
 
 import {
   canViewTargetUsername,
+  getLastActiveAt,
   getUserActivityDetail,
   getUserActivityOverview,
   summarizeLatestPlayRecord,
 } from './admin-user-activity';
 import { db } from './db';
+import { getUserPresence } from './user-presence';
 
 jest.mock('./db', () => ({
   db: {
@@ -18,6 +20,10 @@ jest.mock('./db', () => ({
 
 jest.mock('@/lib/refresh-token', () => ({
   getUserDevices: jest.fn(),
+}));
+
+jest.mock('./user-presence', () => ({
+  getUserPresence: jest.fn(),
 }));
 
 const user = (username: string, role: 'owner' | 'admin' | 'user') => ({
@@ -35,6 +41,7 @@ describe('admin user activity helpers', () => {
     jest.clearAllMocks();
     process.env.USERNAME = 'owner';
     process.env.NEXT_PUBLIC_STORAGE_TYPE = 'redis';
+    (getUserPresence as jest.Mock).mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -190,6 +197,21 @@ describe('admin user activity helpers', () => {
     });
 
     expect(result.users[0].lastActiveAt).toBe(300);
+  });
+
+  it('uses presence as recent activity when it is newer than device activity', async () => {
+    (getUserDevices as jest.Mock).mockResolvedValue([
+      {
+        tokenId: 'a',
+        deviceInfo: 'Chrome',
+        createdAt: 1,
+        lastUsed: 100,
+        expiresAt: 9999,
+      },
+    ]);
+    (getUserPresence as jest.Mock).mockResolvedValue(300);
+
+    await expect(getLastActiveAt('alice')).resolves.toBe(300);
   });
 
   it('sorts users without activity after users with activity', async () => {

@@ -137,4 +137,17 @@ describe('play stats helpers', () => {
 
     await expect(getOnlineCount()).resolves.toBe(1);
   });
+
+  it('keeps a recently active user online across a missed ping', async () => {
+    (db.getUserListV2 as jest.Mock).mockResolvedValue({
+      users: [user('alice', 'user')],
+      total: 1,
+    });
+    (db.getAllPlayRecords as jest.Mock).mockResolvedValue({});
+    (getUserDevices as jest.Mock).mockImplementation(async (username) =>
+      username === 'alice' ? [{ lastUsed: NOW - 3 * 60_000 }] : []
+    );
+
+    await expect(getOnlineCount()).resolves.toBe(1);
+  });
 });

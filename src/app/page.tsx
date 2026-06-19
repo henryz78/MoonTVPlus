@@ -311,10 +311,12 @@ function HomeClient() {
 
     void loadOnlineCount();
     const timer = window.setInterval(loadOnlineCount, 60_000);
+    window.addEventListener('userActivityUpdated', loadOnlineCount);
 
     return () => {
       mounted = false;
       window.clearInterval(timer);
+      window.removeEventListener('userActivityUpdated', loadOnlineCount);
     };
   }, []);
 

@@ -59,6 +59,18 @@ describe('ActivityPing', () => {
     expect(window.fetch).toHaveBeenCalledTimes(2);
   });
 
+  it('notifies the page after a successful ping', async () => {
+    const listener = jest.fn();
+    window.addEventListener('userActivityUpdated', listener);
+
+    render(<ActivityPing />);
+
+    await flushPromises();
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    window.removeEventListener('userActivityUpdated', listener);
+  });
+
   it('does not ping while hidden', async () => {
     Object.defineProperty(document, 'visibilityState', {
       value: 'hidden',

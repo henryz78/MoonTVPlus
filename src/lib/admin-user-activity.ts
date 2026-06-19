@@ -50,7 +50,7 @@ export interface UserActivityDetailResult {
   records: Array<PlayRecord & { key: string }>;
 }
 
-export const ONLINE_THRESHOLD_MS = 2 * 60 * 1000;
+export const ONLINE_THRESHOLD_MS = 5 * 60 * 1000;
 const ADMIN_VISIBLE_FETCH_LIMIT = 1000;
 
 function httpError(message: string, status: number) {

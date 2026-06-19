@@ -43,6 +43,7 @@ export default function ActivityPing() {
         });
         if (response.ok) {
           lastSuccessfulPing = Date.now();
+          window.dispatchEvent(new CustomEvent('userActivityUpdated'));
         }
       } catch (error) {
         console.warn('[ActivityPing] Failed to update activity:', error);

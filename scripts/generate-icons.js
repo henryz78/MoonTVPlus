@@ -7,11 +7,8 @@ const sharp = require('sharp');
 
 const rootDir = path.resolve(__dirname, '..');
 const defaultSource = path.join(rootDir, 'public', 'brand', 'icon.png');
-const sourcePath = process.argv[2]
-  ? path.resolve(process.cwd(), process.argv[2])
-  : defaultSource;
 
-const pngTargets = [
+const defaultPngTargets = [
   { size: 512, output: path.join(rootDir, 'public', 'logo.png') },
   {
     size: 192,
@@ -45,25 +42,33 @@ const pngTargets = [
   },
 ];
 
-const faviconSizes = [16, 32, 48];
+const defaultFaviconSizes = [16, 32, 48];
 
 function ensureDir(filePath) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
 }
 
-async function makePng(size, output) {
-  ensureDir(output);
-  await sharp(sourcePath)
-    .resize(size, size, { fit: 'cover' })
-    .png({ compressionLevel: 9 })
-    .toFile(output);
+function makeCircleMask(size) {
+  return Buffer.from(
+    `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${
+      size / 2
+    }" cy="${size / 2}" r="${size / 2}" fill="#fff"/></svg>`
+  );
 }
 
-async function makePngBuffer(size) {
+async function makePngBuffer(sourcePath, size) {
   return sharp(sourcePath)
     .resize(size, size, { fit: 'cover' })
+    .ensureAlpha()
+    .composite([{ input: makeCircleMask(size), blend: 'dest-in' }])
     .png({ compressionLevel: 9 })
     .toBuffer();
+}
+
+async function makePng(sourcePath, size, output) {
+  ensureDir(output);
+  const buffer = await makePngBuffer(sourcePath, size);
+  fs.writeFileSync(output, buffer);
 }
 
 function makeIco(entries) {
@@ -94,29 +99,48 @@ function makeIco(entries) {
   return Buffer.concat([header, ...entries.map((entry) => entry.buffer)]);
 }
 
-async function main() {
+async function generateIcons(options = {}) {
+  const sourcePath = options.sourcePath || defaultSource;
+  const targets = options.targets || defaultPngTargets;
+  const faviconPath =
+    options.faviconPath || path.join(rootDir, 'public', 'favicon.ico');
+  const faviconSizes = options.faviconSizes || defaultFaviconSizes;
+
   if (!fs.existsSync(sourcePath)) {
     throw new Error(`Icon source not found: ${sourcePath}`);
   }
 
   await Promise.all(
-    pngTargets.map((target) => makePng(target.size, target.output))
+    targets.map((target) => makePng(sourcePath, target.size, target.output))
   );
 
   const faviconEntries = await Promise.all(
     faviconSizes.map(async (size) => ({
       size,
-      buffer: await makePngBuffer(size),
+      buffer: await makePngBuffer(sourcePath, size),
     }))
   );
-  const faviconPath = path.join(rootDir, 'public', 'favicon.ico');
+
   ensureDir(faviconPath);
   fs.writeFileSync(faviconPath, makeIco(faviconEntries));
+}
 
+async function main() {
+  const sourcePath = process.argv[2]
+    ? path.resolve(process.cwd(), process.argv[2])
+    : defaultSource;
+
+  await generateIcons({ sourcePath });
   console.log(`Generated icons from ${path.relative(rootDir, sourcePath)}`);
 }
 
-main().catch((error) => {
-  console.error('Error generating icons:', error);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error('Error generating icons:', error);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  generateIcons,
+};

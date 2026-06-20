@@ -943,10 +943,11 @@ function HomeClient() {
               {musicEnabled && (
                 <Link href='/music'>
                   <button
-                    className='p-1.5 rounded-lg text-green-500 hover:text-green-600 transition-colors'
+                    className='inline-flex items-center gap-1.5 rounded-full bg-green-50 px-2.5 py-1.5 text-xs font-medium text-green-600 ring-1 ring-green-100 transition-colors hover:bg-green-100 dark:bg-green-500/10 dark:text-green-300 dark:ring-green-400/20 dark:hover:bg-green-500/15'
                     title='音乐视听'
                   >
-                    <Music size={18} />
+                    <Music size={16} />
+                    <span>音乐</span>
                   </button>
                 </Link>
               )}
@@ -954,10 +955,11 @@ function HomeClient() {
               {mangaEnabled && (
                 <Link href='/manga'>
                   <button
-                    className='p-1.5 rounded-lg text-emerald-500 hover:text-emerald-600 transition-colors'
+                    className='inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-600 ring-1 ring-emerald-100 transition-colors hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-400/20 dark:hover:bg-emerald-500/15'
                     title='漫画展馆'
                   >
-                    <BookOpen size={18} />
+                    <BookOpen size={16} />
+                    <span>漫画</span>
                   </button>
                 </Link>
               )}
@@ -965,10 +967,11 @@ function HomeClient() {
               {booksEnabled && (
                 <Link href='/books'>
                   <button
-                    className='p-1.5 rounded-lg text-amber-500 hover:text-amber-600 transition-colors'
+                    className='inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1.5 text-xs font-medium text-amber-600 ring-1 ring-amber-100 transition-colors hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-400/20 dark:hover:bg-amber-500/15'
                     title='电子书馆'
                   >
-                    <BookMarked size={18} />
+                    <BookMarked size={16} />
+                    <span>书馆</span>
                   </button>
                 </Link>
               )}
@@ -977,10 +980,11 @@ function HomeClient() {
               {sourceSearchEnabled && (
                 <Link href='/source-search'>
                   <button
-                    className='p-2 rounded-lg text-blue-500 hover:text-blue-600 transition-colors'
+                    className='inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-2.5 py-1.5 text-xs font-medium text-sky-600 ring-1 ring-sky-100 transition-colors hover:bg-sky-100 dark:bg-sky-500/10 dark:text-sky-300 dark:ring-sky-400/20 dark:hover:bg-sky-500/15'
                     title='源站寻片'
                   >
-                    <ListVideo size={20} />
+                    <ListVideo size={16} />
+                    <span>寻片</span>
                   </button>
                 </Link>
               )}

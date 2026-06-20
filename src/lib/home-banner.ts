@@ -27,3 +27,7 @@ export function getSavedHomeBannerHeightScale(
     ? saved
     : getDefaultHomeBannerHeightScale(viewportWidth);
 }
+
+export function isPosterLikeBannerImageUrl(url: string): boolean {
+  return /(?:^|\/)(?:m|s)_ratio_poster(?:\/|$)/i.test(url);
+}

@@ -26,6 +26,7 @@ import { getDoubanDetail } from '@/lib/douban.client';
 import {
   type HomeBannerHeightScale,
   getSavedHomeBannerHeightScale,
+  isPosterLikeBannerImageUrl,
 } from '@/lib/home-banner';
 
 import ProxyImage from '@/components/ProxyImage';
@@ -129,6 +130,9 @@ export default function BannerCarousel({
     }
     return url;
   };
+
+  const shouldContainBannerImage = (imageUrl: string) =>
+    !isMobileView && isPosterLikeBannerImageUrl(imageUrl);
 
   // 读取本地设置
   useEffect(() => {
@@ -563,15 +567,34 @@ export default function BannerCarousel({
                 />
               </div>
             ) : (
-              /* 显示图片 */
-              <ProxyImage
-                originalSrc={getImageUrl(
+              (() => {
+                const imageUrl = getImageUrl(
                   item.backdrop_path || item.poster_path
-                )}
-                alt={item.title}
-                className='absolute inset-0 w-full h-full object-cover'
-                loading={index === 0 ? 'eager' : 'lazy'}
-              />
+                );
+                const containImage = shouldContainBannerImage(imageUrl);
+
+                return (
+                  <>
+                    {containImage && (
+                      <ProxyImage
+                        originalSrc={imageUrl}
+                        alt=''
+                        aria-hidden='true'
+                        className='absolute inset-0 h-full w-full scale-110 object-cover opacity-45 blur-2xl'
+                        loading={index === 0 ? 'eager' : 'lazy'}
+                      />
+                    )}
+                    <ProxyImage
+                      originalSrc={imageUrl}
+                      alt={item.title}
+                      className={`absolute inset-0 h-full w-full ${
+                        containImage ? 'object-contain' : 'object-cover'
+                      }`}
+                      loading={index === 0 ? 'eager' : 'lazy'}
+                    />
+                  </>
+                );
+              })()
             )}
             {/* 渐变遮罩 */}
             <div className='absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent'></div>

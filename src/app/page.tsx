@@ -917,13 +917,13 @@ function HomeClient() {
           <>
             {/* 源站寻片和AI问片入口 */}
             <div
-              className={`flex items-center justify-end gap-2 mb-4 ${
+              className={`mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end ${
                 homeBannerEnabled ? '' : 'mt-[30px]'
               }`}
             >
               {onlineCount !== null && (
                 <div
-                  className='mr-auto inline-flex items-center gap-1.5 rounded-full bg-white/70 px-2.5 py-1 text-xs font-medium text-gray-600 ring-1 ring-gray-200 backdrop-blur dark:bg-gray-900/70 dark:text-gray-300 dark:ring-gray-800'
+                  className='inline-flex w-fit items-center gap-1.5 rounded-full bg-white/70 px-2.5 py-1 text-xs font-medium text-gray-600 ring-1 ring-gray-200 backdrop-blur dark:bg-gray-900/70 dark:text-gray-300 dark:ring-gray-800 sm:mr-auto'
                   title='当前在线人数'
                 >
                   <span className='h-2 w-2 rounded-full bg-green-500 shadow-[0_0_0_3px_rgba(34,197,94,0.16)]' />
@@ -931,75 +931,77 @@ function HomeClient() {
                 </div>
               )}
 
-              <button
-                onClick={handleDirectPlay}
-                className='inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1.5 text-xs font-medium text-blue-600 ring-1 ring-blue-100 transition-colors hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-300 dark:ring-blue-400/20 dark:hover:bg-blue-500/15'
-                title='直链播放'
-              >
-                <LinkIcon size={16} />
-                <span>直链</span>
-              </button>
-
-              {musicEnabled && (
-                <Link href='/music'>
-                  <button
-                    className='inline-flex items-center gap-1.5 rounded-full bg-green-50 px-2.5 py-1.5 text-xs font-medium text-green-600 ring-1 ring-green-100 transition-colors hover:bg-green-100 dark:bg-green-500/10 dark:text-green-300 dark:ring-green-400/20 dark:hover:bg-green-500/15'
-                    title='音乐视听'
-                  >
-                    <Music size={16} />
-                    <span>音乐</span>
-                  </button>
-                </Link>
-              )}
-
-              {mangaEnabled && (
-                <Link href='/manga'>
-                  <button
-                    className='inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-600 ring-1 ring-emerald-100 transition-colors hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-400/20 dark:hover:bg-emerald-500/15'
-                    title='漫画展馆'
-                  >
-                    <BookOpen size={16} />
-                    <span>漫画</span>
-                  </button>
-                </Link>
-              )}
-
-              {booksEnabled && (
-                <Link href='/books'>
-                  <button
-                    className='inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1.5 text-xs font-medium text-amber-600 ring-1 ring-amber-100 transition-colors hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-400/20 dark:hover:bg-amber-500/15'
-                    title='电子书馆'
-                  >
-                    <BookMarked size={16} />
-                    <span>书馆</span>
-                  </button>
-                </Link>
-              )}
-
-              {/* 源站寻片入口 */}
-              {sourceSearchEnabled && (
-                <Link href='/source-search'>
-                  <button
-                    className='inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-2.5 py-1.5 text-xs font-medium text-sky-600 ring-1 ring-sky-100 transition-colors hover:bg-sky-100 dark:bg-sky-500/10 dark:text-sky-300 dark:ring-sky-400/20 dark:hover:bg-sky-500/15'
-                    title='源站寻片'
-                  >
-                    <ListVideo size={16} />
-                    <span>寻片</span>
-                  </button>
-                </Link>
-              )}
-
-              {/* AI问片入口 */}
-              {aiEnabled && (
+              <div className='-mx-2 flex gap-2 overflow-x-auto px-2 pb-1 scrollbar-hide sm:mx-0 sm:w-auto sm:overflow-visible sm:px-0 sm:pb-0'>
                 <button
-                  onClick={() => setShowAIChat(true)}
-                  className='inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-2.5 py-1.5 text-xs font-medium text-purple-600 ring-1 ring-purple-100 transition-colors hover:bg-purple-100 dark:bg-purple-500/10 dark:text-purple-300 dark:ring-purple-400/20 dark:hover:bg-purple-500/15'
-                  title='AI问片'
+                  onClick={handleDirectPlay}
+                  className='inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-blue-50 px-2.5 py-1.5 text-xs font-medium text-blue-600 ring-1 ring-blue-100 transition-colors hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-300 dark:ring-blue-400/20 dark:hover:bg-blue-500/15'
+                  title='直链播放'
                 >
-                  <Bot size={16} />
-                  <span>AI问片</span>
+                  <LinkIcon size={16} />
+                  <span>直链</span>
                 </button>
-              )}
+
+                {musicEnabled && (
+                  <Link href='/music' className='shrink-0'>
+                    <button
+                      className='inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-green-50 px-2.5 py-1.5 text-xs font-medium text-green-600 ring-1 ring-green-100 transition-colors hover:bg-green-100 dark:bg-green-500/10 dark:text-green-300 dark:ring-green-400/20 dark:hover:bg-green-500/15'
+                      title='音乐视听'
+                    >
+                      <Music size={16} />
+                      <span>音乐</span>
+                    </button>
+                  </Link>
+                )}
+
+                {mangaEnabled && (
+                  <Link href='/manga' className='shrink-0'>
+                    <button
+                      className='inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-600 ring-1 ring-emerald-100 transition-colors hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-400/20 dark:hover:bg-emerald-500/15'
+                      title='漫画展馆'
+                    >
+                      <BookOpen size={16} />
+                      <span>漫画</span>
+                    </button>
+                  </Link>
+                )}
+
+                {booksEnabled && (
+                  <Link href='/books' className='shrink-0'>
+                    <button
+                      className='inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-amber-50 px-2.5 py-1.5 text-xs font-medium text-amber-600 ring-1 ring-amber-100 transition-colors hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-400/20 dark:hover:bg-amber-500/15'
+                      title='电子书馆'
+                    >
+                      <BookMarked size={16} />
+                      <span>书馆</span>
+                    </button>
+                  </Link>
+                )}
+
+                {/* 源站寻片入口 */}
+                {sourceSearchEnabled && (
+                  <Link href='/source-search' className='shrink-0'>
+                    <button
+                      className='inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-sky-50 px-2.5 py-1.5 text-xs font-medium text-sky-600 ring-1 ring-sky-100 transition-colors hover:bg-sky-100 dark:bg-sky-500/10 dark:text-sky-300 dark:ring-sky-400/20 dark:hover:bg-sky-500/15'
+                      title='源站寻片'
+                    >
+                      <ListVideo size={16} />
+                      <span>寻片</span>
+                    </button>
+                  </Link>
+                )}
+
+                {/* AI问片入口 */}
+                {aiEnabled && (
+                  <button
+                    onClick={() => setShowAIChat(true)}
+                    className='inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-purple-50 px-2.5 py-1.5 text-xs font-medium text-purple-600 ring-1 ring-purple-100 transition-colors hover:bg-purple-100 dark:bg-purple-500/10 dark:text-purple-300 dark:ring-purple-400/20 dark:hover:bg-purple-500/15'
+                    title='AI问片'
+                  >
+                    <Bot size={16} />
+                    <span>AI问片</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* 继续观看 */}

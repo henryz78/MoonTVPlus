@@ -10,7 +10,6 @@ import {
   Link as LinkIcon,
   ListVideo,
   Music,
-  Users,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Suspense, useEffect, useState } from 'react';
@@ -924,20 +923,21 @@ function HomeClient() {
             >
               {onlineCount !== null && (
                 <div
-                  className='mr-auto inline-flex items-center gap-1.5 rounded-lg bg-white/75 px-2.5 py-1.5 text-xs text-gray-600 shadow-sm ring-1 ring-gray-200 backdrop-blur dark:bg-gray-900/75 dark:text-gray-300 dark:ring-gray-800'
+                  className='mr-auto inline-flex items-center gap-1.5 rounded-full bg-white/70 px-2.5 py-1 text-xs font-medium text-gray-600 ring-1 ring-gray-200 backdrop-blur dark:bg-gray-900/70 dark:text-gray-300 dark:ring-gray-800'
                   title='当前在线人数'
                 >
-                  <Users className='h-3.5 w-3.5 text-green-500' />
-                  当前在线 {onlineCount} 人
+                  <span className='h-2 w-2 rounded-full bg-green-500 shadow-[0_0_0_3px_rgba(34,197,94,0.16)]' />
+                  {onlineCount} 在线
                 </div>
               )}
 
               <button
                 onClick={handleDirectPlay}
-                className='p-1.5 rounded-lg text-blue-500 hover:text-blue-600 transition-colors'
+                className='inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1.5 text-xs font-medium text-blue-600 ring-1 ring-blue-100 transition-colors hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-300 dark:ring-blue-400/20 dark:hover:bg-blue-500/15'
                 title='直链播放'
               >
-                <LinkIcon size={18} />
+                <LinkIcon size={16} />
+                <span>直链</span>
               </button>
 
               {musicEnabled && (
@@ -989,10 +989,11 @@ function HomeClient() {
               {aiEnabled && (
                 <button
                   onClick={() => setShowAIChat(true)}
-                  className='p-2 rounded-lg text-purple-500 hover:text-purple-600 transition-colors'
+                  className='inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-2.5 py-1.5 text-xs font-medium text-purple-600 ring-1 ring-purple-100 transition-colors hover:bg-purple-100 dark:bg-purple-500/10 dark:text-purple-300 dark:ring-purple-400/20 dark:hover:bg-purple-500/15'
                   title='AI问片'
                 >
-                  <Bot size={20} />
+                  <Bot size={16} />
+                  <span>AI问片</span>
                 </button>
               )}
             </div>

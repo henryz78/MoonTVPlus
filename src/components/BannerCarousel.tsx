@@ -23,6 +23,10 @@ import {
   getTMDBImageUrl,
 } from '@/lib/tmdb.client';
 import { getDoubanDetail } from '@/lib/douban.client';
+import {
+  type HomeBannerHeightScale,
+  getSavedHomeBannerHeightScale,
+} from '@/lib/home-banner';
 
 import ProxyImage from '@/components/ProxyImage';
 
@@ -30,8 +34,6 @@ interface BannerCarouselProps {
   autoPlayInterval?: number; // 自动播放间隔（毫秒）
   delayLoad?: boolean; // 是否延迟加载（等页面加载完毕后再加载）
 }
-
-type HomeBannerHeightScale = '1' | '1.5' | '2';
 
 const bannerHeightClassMap: Record<HomeBannerHeightScale, string> = {
   '1': 'h-[200px] sm:h-[300px] md:h-[400px] lg:h-[500px]',
@@ -41,9 +43,7 @@ const bannerHeightClassMap: Record<HomeBannerHeightScale, string> = {
 
 const getSavedBannerHeightScale = (): HomeBannerHeightScale => {
   if (typeof window === 'undefined') return '1';
-
-  const saved = localStorage.getItem('homeBannerHeightScale');
-  return saved === '1.5' || saved === '2' ? saved : '1';
+  return getSavedHomeBannerHeightScale(localStorage, window.innerWidth);
 };
 
 // 扩展TMDBItem类型以支持TX数据源的额外字段
@@ -71,7 +71,7 @@ export default function BannerCarousel({
   const [trailersLoaded, setTrailersLoaded] = useState(false); // 预告片是否已加载
   const [isMuted, setIsMuted] = useState(true); // 视频是否静音（默认静音）
   const [bannerHeightScale, setBannerHeightScale] =
-    useState<HomeBannerHeightScale>('1'); // 轮播图高度倍率
+    useState<HomeBannerHeightScale>(() => getSavedBannerHeightScale()); // 轮播图高度倍率
   const [isMobileView, setIsMobileView] = useState(false);
   const [mobileTitleFontSize, setMobileTitleFontSize] = useState(30);
   const videoRef = useRef<HTMLVideoElement>(null); // 视频元素引用

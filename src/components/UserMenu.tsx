@@ -42,6 +42,12 @@ import { createPortal } from 'react-dom';
 
 import { getAuthInfoFromBrowserCookie } from '@/lib/auth';
 import { clearAllDanmakuCache, getDanmakuCacheStats } from '@/lib/danmaku/api';
+import {
+  HOME_BANNER_HEIGHT_STORAGE_KEY,
+  type HomeBannerHeightScale,
+  getDefaultHomeBannerHeightScale,
+  getSavedHomeBannerHeightScale,
+} from '@/lib/home-banner';
 import { clearBangumiImageFallbackCache } from '@/lib/utils';
 import { CURRENT_VERSION } from '@/lib/version';
 import { UpdateStatus } from '@/lib/version_check';
@@ -278,8 +284,6 @@ export const UserMenu: React.FC = () => {
     order: number;
   }
 
-  type HomeBannerHeightScale = '1' | '1.5' | '2';
-
   const defaultHomeModules: HomeModule[] = [
     { id: 'hotMovies', name: '热门电影', enabled: true, order: 0 },
     { id: 'hotDuanju', name: '热播短剧', enabled: true, order: 1 },
@@ -293,7 +297,11 @@ export const UserMenu: React.FC = () => {
     useState<HomeModule[]>(defaultHomeModules);
   const [homeBannerEnabled, setHomeBannerEnabled] = useState(true);
   const [homeBannerHeightScale, setHomeBannerHeightScale] =
-    useState<HomeBannerHeightScale>('1');
+    useState<HomeBannerHeightScale>(() =>
+      typeof window === 'undefined'
+        ? '1'
+        : getSavedHomeBannerHeightScale(localStorage, window.innerWidth)
+    );
   const [homeContinueWatchingEnabled, setHomeContinueWatchingEnabled] =
     useState(true);
 
@@ -783,16 +791,9 @@ export const UserMenu: React.FC = () => {
         setHomeBannerEnabled(savedHomeBannerEnabled === 'true');
       }
 
-      const savedHomeBannerHeightScale = localStorage.getItem(
-        'homeBannerHeightScale'
+      setHomeBannerHeightScale(
+        getSavedHomeBannerHeightScale(localStorage, window.innerWidth)
       );
-      if (
-        savedHomeBannerHeightScale === '1' ||
-        savedHomeBannerHeightScale === '1.5' ||
-        savedHomeBannerHeightScale === '2'
-      ) {
-        setHomeBannerHeightScale(savedHomeBannerHeightScale);
-      }
 
       const savedHomeContinueWatchingEnabled = localStorage.getItem(
         'homeContinueWatchingEnabled'
@@ -1981,7 +1982,7 @@ export const UserMenu: React.FC = () => {
   const handleHomeBannerHeightScaleChange = (value: HomeBannerHeightScale) => {
     setHomeBannerHeightScale(value);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('homeBannerHeightScale', value);
+      localStorage.setItem(HOME_BANNER_HEIGHT_STORAGE_KEY, value);
       window.dispatchEvent(new CustomEvent('homeModulesUpdated'));
     }
   };
@@ -2142,7 +2143,10 @@ export const UserMenu: React.FC = () => {
       localStorage.setItem('danmakuMaxCount', '0');
       localStorage.setItem('danmaku_heatmap_disabled', 'false');
       localStorage.setItem('homeBannerEnabled', 'true');
-      localStorage.setItem('homeBannerHeightScale', '1');
+      localStorage.setItem(
+        HOME_BANNER_HEIGHT_STORAGE_KEY,
+        getDefaultHomeBannerHeightScale(window.innerWidth)
+      );
       localStorage.setItem('homeContinueWatchingEnabled', 'true');
       localStorage.setItem('homeModules', JSON.stringify(defaultHomeModules));
       localStorage.setItem('searchTraditionalToSimplified', 'false');
@@ -4407,9 +4411,13 @@ export const UserMenu: React.FC = () => {
                   {/* 恢复默认按钮 */}
                   <button
                     onClick={() => {
+                      const defaultBannerHeight =
+                        typeof window === 'undefined'
+                          ? '1'
+                          : getDefaultHomeBannerHeightScale(window.innerWidth);
                       setHomeModules(defaultHomeModules);
                       setHomeBannerEnabled(true);
-                      setHomeBannerHeightScale('1');
+                      setHomeBannerHeightScale(defaultBannerHeight);
                       setHomeContinueWatchingEnabled(true);
                       if (typeof window !== 'undefined') {
                         localStorage.setItem(
@@ -4417,7 +4425,10 @@ export const UserMenu: React.FC = () => {
                           JSON.stringify(defaultHomeModules)
                         );
                         localStorage.setItem('homeBannerEnabled', 'true');
-                        localStorage.setItem('homeBannerHeightScale', '1');
+                        localStorage.setItem(
+                          HOME_BANNER_HEIGHT_STORAGE_KEY,
+                          getDefaultHomeBannerHeightScale(window.innerWidth)
+                        );
                         localStorage.setItem(
                           'homeContinueWatchingEnabled',
                           'true'

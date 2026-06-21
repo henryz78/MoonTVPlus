@@ -101,4 +101,20 @@ describe('PlayStatsPage', () => {
       expect(window.fetch).toHaveBeenCalledTimes(2);
     });
   });
+
+  it('keeps ranking sections shrinkable on narrow screens', async () => {
+    render(<PlayStatsPage />);
+
+    expect(await screen.findByText('最近观看最多')).toBeInTheDocument();
+
+    expect(screen.getByText('最近观看最多').closest('section')).toHaveClass(
+      'min-w-0',
+      'overflow-hidden'
+    );
+    expect(screen.getByText('用户排行').closest('section')).toHaveClass(
+      'min-w-0',
+      'overflow-hidden'
+    );
+    expect(screen.getByText('1. 识骨寻踪第一季')).toHaveClass('break-words');
+  });
 });

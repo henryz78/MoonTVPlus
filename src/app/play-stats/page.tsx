@@ -172,7 +172,7 @@ export default function PlayStatsPage() {
 
   return (
     <PageLayout activePath='/play-stats'>
-      <div className='mx-auto max-w-7xl px-4 py-8 md:px-8'>
+      <div className='mx-auto min-w-0 max-w-7xl overflow-x-hidden px-4 py-8 md:px-8'>
         <div className='mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between'>
           <div>
             <h1 className='flex items-center gap-2 text-2xl font-bold text-gray-900 dark:text-gray-100'>
@@ -206,7 +206,7 @@ export default function PlayStatsPage() {
             加载中...
           </div>
         ) : stats ? (
-          <div className='space-y-6'>
+          <div className='min-w-0 space-y-6'>
             <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5'>
               <StatCard
                 icon={<Users className='h-5 w-5' />}
@@ -244,8 +244,8 @@ export default function PlayStatsPage() {
               />
             </div>
 
-            <div className='grid gap-4 lg:grid-cols-2'>
-              <section className='rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900'>
+            <div className='grid min-w-0 gap-4 lg:grid-cols-2'>
+              <section className='min-w-0 overflow-hidden rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900'>
                 <h2 className='mb-3 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100'>
                   <Trophy className='h-4 w-4 text-amber-500' />
                   最近观看最多
@@ -255,14 +255,14 @@ export default function PlayStatsPage() {
                     暂无统计
                   </div>
                 ) : (
-                  <div className='space-y-3'>
+                  <div className='min-w-0 space-y-3'>
                     {stats.topTitles.map((item, index) => (
                       <div
                         key={item.title}
-                        className='flex flex-col gap-3 rounded-lg border border-gray-100 px-3 py-2 text-sm dark:border-gray-800 sm:flex-row sm:items-center sm:justify-between'
+                        className='min-w-0 overflow-hidden rounded-lg border border-gray-100 px-3 py-2 text-sm dark:border-gray-800 sm:flex sm:items-center sm:justify-between sm:gap-3'
                       >
                         <div className='min-w-0'>
-                          <div className='font-medium text-gray-900 dark:text-gray-100'>
+                          <div className='break-words font-medium text-gray-900 dark:text-gray-100'>
                             {index + 1}. {item.title}
                           </div>
                           <div className='mt-1 text-xs text-gray-500'>
@@ -272,7 +272,7 @@ export default function PlayStatsPage() {
                             已看 {formatWatchDuration(item.watchSeconds)}
                           </div>
                         </div>
-                        <span className='flex-none self-start rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-200 sm:self-auto'>
+                        <span className='mt-3 inline-flex w-fit flex-none self-start rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-200 sm:mt-0 sm:self-auto'>
                           {item.count} 条
                         </span>
                       </div>
@@ -281,7 +281,7 @@ export default function PlayStatsPage() {
                 )}
               </section>
 
-              <section className='rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900'>
+              <section className='min-w-0 overflow-hidden rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900'>
                 <h2 className='mb-3 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100'>
                   <Users className='h-4 w-4 text-blue-500' />
                   {stats.viewerRole === 'user' ? '我的概况' : '用户排行'}
@@ -291,11 +291,11 @@ export default function PlayStatsPage() {
                     暂无用户数据
                   </div>
                 ) : (
-                  <div className='space-y-3'>
+                  <div className='min-w-0 space-y-3'>
                     {stats.userRanking.map((item) => (
                       <div
                         key={item.username}
-                        className='rounded-lg border border-gray-100 px-3 py-2 text-sm dark:border-gray-800'
+                        className='min-w-0 overflow-hidden rounded-lg border border-gray-100 px-3 py-2 text-sm dark:border-gray-800'
                       >
                         <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
                           <div className='min-w-0'>
@@ -321,7 +321,7 @@ export default function PlayStatsPage() {
                           </span>
                         </div>
                         {item.latestPlayRecord && (
-                          <div className='mt-2 truncate text-xs text-gray-500'>
+                          <div className='mt-2 min-w-0 break-words text-xs text-gray-500'>
                             最近：{item.latestPlayRecord.title} · 第{' '}
                             {item.latestPlayRecord.episode} 集 ·{' '}
                             {item.latestPlayRecord.progressPercent}%

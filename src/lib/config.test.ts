@@ -54,4 +54,27 @@ describe('configSelfCheck AI defaults', () => {
       '你是 MoonTVPlus 的 AI 影视助手'
     );
   });
+
+  it('fills the announcement force-read default when missing', () => {
+    const config = configSelfCheck({
+      ConfigFile: '{}',
+      ConfigSubscribtion: {
+        URL: '',
+        AutoUpdate: false,
+        LastCheck: '',
+      },
+      SiteConfig: {
+        SiteName: 'Test',
+        Announcement: '公告内容',
+        SearchDownstreamMaxPage: 5,
+        SiteInterfaceCacheTime: 7200,
+      },
+      UserConfig: { Users: [] },
+      SourceConfig: [],
+      CustomCategories: [],
+      LiveConfig: [],
+    } as unknown as AdminConfig);
+
+    expect(config.SiteConfig.AnnouncementForceRead).toBe(false);
+  });
 });

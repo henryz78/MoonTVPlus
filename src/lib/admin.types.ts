@@ -8,6 +8,7 @@ export interface AdminConfig {
   SiteConfig: {
     SiteName: string;
     Announcement: string;
+    AnnouncementForceRead?: boolean; // 首页公告弹窗确认按钮延迟 3 秒
     SearchDownstreamMaxPage: number;
     SiteInterfaceCacheTime: number;
     DoubanProxyType: string;

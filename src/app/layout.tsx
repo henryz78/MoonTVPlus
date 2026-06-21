@@ -6,11 +6,12 @@ import { cookies } from 'next/headers';
 
 import './globals.css';
 
-import ActivityPing from '@/components/ActivityPing';
 import { parseAuthInfo } from '@/lib/auth';
 import { getConfig } from '@/lib/config';
 import { getUserFeatureAccess } from '@/lib/permissions';
 import { listEnabledSourceScripts } from '@/lib/source-script';
+
+import ActivityPing from '@/components/ActivityPing';
 
 import { StartupCacheCleanup } from '../components/DanmakuCacheCleanup';
 import { DownloadBubble } from '../components/DownloadBubble';
@@ -67,6 +68,7 @@ export default async function RootLayout({
   let announcement =
     process.env.ANNOUNCEMENT ||
     '本网站仅提供影视信息搜索服务，所有内容均来自第三方网站。本站不存储任何视频资源，不对任何内容的准确性、合法性、完整性负责。';
+  let announcementForceRead = process.env.ANNOUNCEMENT_FORCE_READ === 'true';
 
   let doubanProxyType =
     process.env.NEXT_PUBLIC_DOUBAN_PROXY_TYPE || 'cmliussss-cdn-tencent';
@@ -148,6 +150,7 @@ export default async function RootLayout({
     const config = await getConfig();
     siteName = config.SiteConfig.SiteName;
     announcement = config.SiteConfig.Announcement;
+    announcementForceRead = config.SiteConfig.AnnouncementForceRead || false;
 
     doubanProxyType = config.SiteConfig.DoubanProxyType;
     doubanProxy = config.SiteConfig.DoubanProxy;
@@ -366,6 +369,8 @@ export default async function RootLayout({
           <SiteProvider
             siteName={siteName}
             announcement={announcement}
+            announcementForceRead={announcementForceRead}
+            runtimeConfig={runtimeConfig}
             tmdbApiKey={tmdbApiKey}
           >
             <WatchRoomProvider>

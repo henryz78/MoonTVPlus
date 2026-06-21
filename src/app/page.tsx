@@ -53,7 +53,7 @@ function HomeClient() {
     BangumiCalendarData[]
   >([]);
   const [loading, setLoading] = useState(true);
-  const { announcement } = useSite();
+  const { announcement, announcementForceRead } = useSite();
   // 首页模块配置状态
   const [homeModules, setHomeModules] = useState<HomeModule[]>([
     { id: 'hotMovies', name: '热门电影', enabled: true, order: 0 },
@@ -68,6 +68,7 @@ function HomeClient() {
     useState(true);
 
   const [showAnnouncement, setShowAnnouncement] = useState(false);
+  const [announcementReadRemaining, setAnnouncementReadRemaining] = useState(0);
   const [showHttpWarning, setShowHttpWarning] = useState(true);
   const [showAIChat, setShowAIChat] = useState(false);
   const [aiEnabled, setAiEnabled] = useState(false);
@@ -404,6 +405,31 @@ function HomeClient() {
       }
     }
   }, [announcement]);
+
+  useEffect(() => {
+    if (
+      typeof window === 'undefined' ||
+      !showAnnouncement ||
+      !announcementForceRead
+    ) {
+      setAnnouncementReadRemaining(0);
+      return;
+    }
+
+    setAnnouncementReadRemaining(3);
+    const timer = window.setInterval(() => {
+      setAnnouncementReadRemaining((remaining) => {
+        if (remaining <= 1) {
+          window.clearInterval(timer);
+          return 0;
+        }
+
+        return remaining - 1;
+      });
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [announcement, announcementForceRead, showAnnouncement]);
 
   useEffect(() => {
     const CACHE_DURATION = 60 * 60 * 1000; // 1小时
@@ -1042,9 +1068,15 @@ function HomeClient() {
             </div>
             <button
               onClick={() => handleCloseAnnouncement(announcement || '')}
-              className='w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors'
+              disabled={
+                Boolean(announcementForceRead) &&
+                announcementReadRemaining > 0
+              }
+              className='w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:cursor-not-allowed disabled:bg-gray-400 disabled:hover:bg-gray-400 dark:disabled:bg-gray-600'
             >
-              知道了
+              {announcementForceRead && announcementReadRemaining > 0
+                ? `请阅读 ${announcementReadRemaining} 秒`
+                : '知道了'}
             </button>
           </div>
         </div>

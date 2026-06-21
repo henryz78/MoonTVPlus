@@ -356,6 +356,7 @@ interface StandaloneSourceScript {
 interface SiteConfig {
   SiteName: string;
   Announcement: string;
+  AnnouncementForceRead?: boolean;
   SearchDownstreamMaxPage: number;
   SiteInterfaceCacheTime: number;
   DoubanProxyType: string;
@@ -10134,6 +10135,7 @@ const SiteConfigComponent = ({
   const [siteSettings, setSiteSettings] = useState<SiteConfig>({
     SiteName: '',
     Announcement: '',
+    AnnouncementForceRead: false,
     SearchDownstreamMaxPage: 1,
     SiteInterfaceCacheTime: 7200,
     DoubanProxyType: 'cmliussss-cdn-tencent',
@@ -10286,6 +10288,8 @@ const SiteConfigComponent = ({
         MagnetAcgripReverseProxy:
           config.SiteConfig.MagnetAcgripReverseProxy || '',
         EnableComments: config.SiteConfig.EnableComments || false,
+        AnnouncementForceRead:
+          config.SiteConfig.AnnouncementForceRead || false,
       });
     }
   }, [config]);
@@ -10442,6 +10446,22 @@ const SiteConfigComponent = ({
           rows={3}
           className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent'
         />
+        <label className='mt-3 flex items-center justify-between gap-4 rounded-lg border border-gray-200 bg-gray-50/70 px-3 py-2 dark:border-gray-700 dark:bg-gray-800/50'>
+          <span className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+            强制阅读 3 秒
+          </span>
+          <input
+            type='checkbox'
+            checked={siteSettings.AnnouncementForceRead || false}
+            onChange={(e) =>
+              setSiteSettings((prev) => ({
+                ...prev,
+                AnnouncementForceRead: e.target.checked,
+              }))
+            }
+            className='h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-800'
+          />
+        </label>
       </div>
 
       {/* 豆瓣数据源设置 */}

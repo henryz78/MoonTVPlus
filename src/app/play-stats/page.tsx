@@ -22,12 +22,14 @@ interface PlayStatsRecordSummary {
   episode: number;
   sourceName: string;
   progressPercent: number;
+  watchSeconds: number;
   saveTime: number;
 }
 
 interface PlayStatsTitleSummary {
   title: string;
   count: number;
+  watchSeconds: number;
   latestSaveTime: number;
 }
 
@@ -35,6 +37,7 @@ interface PlayStatsUserSummary {
   username: string;
   role: Role;
   playRecordCount: number;
+  watchSeconds: number;
   lastActiveAt: number | null;
   isOnline: boolean;
   latestPlayRecord: PlayStatsRecordSummary | null;
@@ -45,10 +48,13 @@ interface PlayStatsResponse {
   totalUsers: number;
   onlineUsers: number;
   totalPlayRecords: number;
+  totalWatchSeconds: number;
   todayActiveUsers: number;
   last7DaysActiveUsers: number;
   todayPlayRecords: number;
   last7DaysPlayRecords: number;
+  todayWatchSeconds: number;
+  last7DaysWatchSeconds: number;
   lastWatchAt: number | null;
   topTitles: PlayStatsTitleSummary[];
   userRanking: PlayStatsUserSummary[];
@@ -88,6 +94,19 @@ function formatActivity(lastActiveAt: number | null, isOnline?: boolean) {
   const months = Math.floor(days / 30);
   if (months < 12) return `${months} 个月前在线`;
   return `${Math.max(1, Math.floor(days / 365))} 年前在线`;
+}
+
+function formatWatchDuration(seconds: number | null | undefined) {
+  const safeSeconds = Math.max(0, seconds || 0);
+  if (safeSeconds > 0 && safeSeconds < 60) return '1 分钟';
+
+  const totalMinutes = Math.floor(safeSeconds / 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours <= 0) return `${totalMinutes} 分钟`;
+  if (minutes === 0) return `${hours} 小时`;
+  return `${hours} 小时 ${minutes} 分钟`;
 }
 
 function StatCard({
@@ -188,7 +207,7 @@ export default function PlayStatsPage() {
           </div>
         ) : stats ? (
           <div className='space-y-6'>
-            <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
+            <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5'>
               <StatCard
                 icon={<Users className='h-5 w-5' />}
                 label='可见用户'
@@ -200,6 +219,16 @@ export default function PlayStatsPage() {
                 label='观看记录'
                 value={stats.totalPlayRecords}
                 subtext={`今日 ${stats.todayPlayRecords} 条`}
+              />
+              <StatCard
+                icon={<Clock className='h-5 w-5' />}
+                label='总观看时长'
+                value={formatWatchDuration(stats.totalWatchSeconds)}
+                subtext={`今日 ${formatWatchDuration(
+                  stats.todayWatchSeconds
+                )} · 近 7 天 ${formatWatchDuration(
+                  stats.last7DaysWatchSeconds
+                )}`}
               />
               <StatCard
                 icon={<Activity className='h-5 w-5' />}
@@ -230,7 +259,7 @@ export default function PlayStatsPage() {
                     {stats.topTitles.map((item, index) => (
                       <div
                         key={item.title}
-                        className='flex items-center justify-between gap-3 rounded-lg border border-gray-100 px-3 py-2 text-sm dark:border-gray-800'
+                        className='flex flex-col gap-3 rounded-lg border border-gray-100 px-3 py-2 text-sm dark:border-gray-800 sm:flex-row sm:items-center sm:justify-between'
                       >
                         <div className='min-w-0'>
                           <div className='font-medium text-gray-900 dark:text-gray-100'>
@@ -239,8 +268,11 @@ export default function PlayStatsPage() {
                           <div className='mt-1 text-xs text-gray-500'>
                             最近：{formatDateTime(item.latestSaveTime)}
                           </div>
+                          <div className='mt-1 text-xs text-gray-500'>
+                            已看 {formatWatchDuration(item.watchSeconds)}
+                          </div>
                         </div>
-                        <span className='flex-none rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-200'>
+                        <span className='flex-none self-start rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-200 sm:self-auto'>
                           {item.count} 条
                         </span>
                       </div>
@@ -265,7 +297,7 @@ export default function PlayStatsPage() {
                         key={item.username}
                         className='rounded-lg border border-gray-100 px-3 py-2 text-sm dark:border-gray-800'
                       >
-                        <div className='flex items-center justify-between gap-3'>
+                        <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
                           <div className='min-w-0'>
                             <div className='truncate font-medium text-gray-900 dark:text-gray-100'>
                               {item.username}
@@ -283,8 +315,9 @@ export default function PlayStatsPage() {
                               {formatActivity(item.lastActiveAt, item.isOnline)}
                             </div>
                           </div>
-                          <span className='flex-none text-xs text-gray-500'>
-                            {item.playRecordCount} 条
+                          <span className='flex-none self-start text-xs text-gray-500 sm:self-auto'>
+                            {item.playRecordCount} 条 ·{' '}
+                            {formatWatchDuration(item.watchSeconds)}
                           </span>
                         </div>
                         {item.latestPlayRecord && (
@@ -311,18 +344,50 @@ export default function PlayStatsPage() {
                   暂无观看记录
                 </div>
               ) : (
-                <div className='overflow-x-auto'>
-                  <div className='min-w-[720px]'>
-                    <div className='grid grid-cols-[1fr_120px_120px_150px] gap-3 border-b border-gray-200 px-3 py-2 text-xs font-semibold text-gray-500 dark:border-gray-800'>
+                <>
+                  <div className='space-y-3 lg:hidden'>
+                    {stats.recentRecords.map((record) => (
+                      <div
+                        key={`${record.username}-${record.sourceName}-${record.title}-${record.saveTime}`}
+                        className='rounded-lg border border-gray-100 p-3 text-sm dark:border-gray-800'
+                      >
+                        <div className='flex items-start justify-between gap-3'>
+                          <div className='min-w-0'>
+                            <div className='break-words font-medium text-gray-900 dark:text-gray-100'>
+                              {record.title}
+                            </div>
+                            <div className='mt-1 text-xs text-gray-500'>
+                              第 {record.episode} 集 · {record.sourceName}
+                            </div>
+                          </div>
+                          <span className='flex-none rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-200'>
+                            {record.progressPercent}%
+                          </span>
+                        </div>
+                        <div className='mt-3 grid gap-2 text-xs text-gray-500 sm:grid-cols-3'>
+                          <span className='min-w-0 break-words'>
+                            用户：{record.username}
+                          </span>
+                          <span>
+                            已看 {formatWatchDuration(record.watchSeconds)}
+                          </span>
+                          <span>{formatDateTime(record.saveTime)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className='hidden lg:block'>
+                    <div className='grid grid-cols-[minmax(0,1fr)_120px_100px_130px_150px] gap-3 border-b border-gray-200 px-3 py-2 text-xs font-semibold text-gray-500 dark:border-gray-800'>
                       <span>影片</span>
                       <span>用户</span>
                       <span>进度</span>
+                      <span>已看</span>
                       <span>时间</span>
                     </div>
                     {stats.recentRecords.map((record) => (
                       <div
                         key={`${record.username}-${record.sourceName}-${record.title}-${record.saveTime}`}
-                        className='grid grid-cols-[1fr_120px_120px_150px] gap-3 border-b border-gray-100 px-3 py-3 text-sm last:border-b-0 dark:border-gray-800'
+                        className='grid grid-cols-[minmax(0,1fr)_120px_100px_130px_150px] gap-3 border-b border-gray-100 px-3 py-3 text-sm last:border-b-0 dark:border-gray-800'
                       >
                         <span className='min-w-0 truncate text-gray-900 dark:text-gray-100'>
                           {record.title} · 第 {record.episode} 集
@@ -333,13 +398,16 @@ export default function PlayStatsPage() {
                         <span className='text-gray-600 dark:text-gray-300'>
                           {record.progressPercent}%
                         </span>
+                        <span className='text-gray-600 dark:text-gray-300'>
+                          {formatWatchDuration(record.watchSeconds)}
+                        </span>
                         <span className='text-gray-500'>
                           {formatDateTime(record.saveTime)}
                         </span>
                       </div>
                     ))}
                   </div>
-                </div>
+                </>
               )}
             </section>
           </div>

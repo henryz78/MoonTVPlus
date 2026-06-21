@@ -21,12 +21,14 @@ export interface PlayStatsRecordSummary {
   episode: number;
   sourceName: string;
   progressPercent: number;
+  watchSeconds: number;
   saveTime: number;
 }
 
 export interface PlayStatsTitleSummary {
   title: string;
   count: number;
+  watchSeconds: number;
   latestSaveTime: number;
 }
 
@@ -34,6 +36,7 @@ export interface PlayStatsUserSummary {
   username: string;
   role: UserActivityRole;
   playRecordCount: number;
+  watchSeconds: number;
   lastActiveAt: number | null;
   isOnline: boolean;
   latestPlayRecord: PlayStatsRecordSummary | null;
@@ -44,10 +47,13 @@ export interface PlayStatsResult {
   totalUsers: number;
   onlineUsers: number;
   totalPlayRecords: number;
+  totalWatchSeconds: number;
   todayActiveUsers: number;
   last7DaysActiveUsers: number;
   todayPlayRecords: number;
   last7DaysPlayRecords: number;
+  todayWatchSeconds: number;
+  last7DaysWatchSeconds: number;
   lastWatchAt: number | null;
   topTitles: PlayStatsTitleSummary[];
   userRanking: PlayStatsUserSummary[];
@@ -62,6 +68,13 @@ function progressPercent(record: PlayRecord) {
   );
 }
 
+function watchSeconds(record: PlayRecord) {
+  const playTime = Number.isFinite(record.play_time) ? record.play_time : 0;
+  const totalTime = Number.isFinite(record.total_time) ? record.total_time : 0;
+  const upperBound = totalTime > 0 ? totalTime : playTime;
+  return Math.max(0, Math.floor(Math.min(playTime, upperBound)));
+}
+
 function toRecordSummary(
   username: string,
   record: PlayRecord
@@ -72,6 +85,7 @@ function toRecordSummary(
     episode: record.index,
     sourceName: record.source_name,
     progressPercent: progressPercent(record),
+    watchSeconds: watchSeconds(record),
     saveTime: record.save_time,
   };
 }
@@ -149,6 +163,10 @@ async function buildUserStats(user: UserActivityUser) {
   ]);
   const recordList = Object.values(records);
   const latestRecord = latestRecordFrom(records);
+  const totalWatchSeconds = recordList.reduce(
+    (total, record) => total + watchSeconds(record),
+    0
+  );
   const lastActiveAt = newestActivityTime(
     deviceLastActiveAt,
     latestRecord?.save_time
@@ -157,6 +175,7 @@ async function buildUserStats(user: UserActivityUser) {
   return {
     user,
     records: recordList,
+    watchSeconds: totalWatchSeconds,
     lastActiveAt,
     isOnline: Boolean(
       lastActiveAt && Date.now() - lastActiveAt <= ONLINE_THRESHOLD_MS
@@ -183,12 +202,23 @@ export async function getPlayStats(input: {
 
   let todayPlayRecords = 0;
   let last7DaysPlayRecords = 0;
+  let todayWatchSeconds = 0;
+  let last7DaysWatchSeconds = 0;
+  let totalWatchSeconds = 0;
   let lastWatchAt: number | null = null;
 
   for (const item of userStats) {
     for (const record of item.records) {
-      if (isSameLocalDay(record.save_time, now)) todayPlayRecords += 1;
-      if (record.save_time >= sevenDaysAgo) last7DaysPlayRecords += 1;
+      const recordWatchSeconds = watchSeconds(record);
+      totalWatchSeconds += recordWatchSeconds;
+      if (isSameLocalDay(record.save_time, now)) {
+        todayPlayRecords += 1;
+        todayWatchSeconds += recordWatchSeconds;
+      }
+      if (record.save_time >= sevenDaysAgo) {
+        last7DaysPlayRecords += 1;
+        last7DaysWatchSeconds += recordWatchSeconds;
+      }
       if (!lastWatchAt || record.save_time > lastWatchAt) {
         lastWatchAt = record.save_time;
       }
@@ -198,6 +228,7 @@ export async function getPlayStats(input: {
       titleCounts.set(title, {
         title,
         count: (existing?.count || 0) + 1,
+        watchSeconds: (existing?.watchSeconds || 0) + recordWatchSeconds,
         latestSaveTime: Math.max(
           existing?.latestSaveTime || 0,
           record.save_time
@@ -212,6 +243,7 @@ export async function getPlayStats(input: {
       username: item.user.username,
       role: item.user.role,
       playRecordCount: item.records.length,
+      watchSeconds: item.watchSeconds,
       lastActiveAt: item.lastActiveAt,
       isOnline: item.isOnline,
       latestPlayRecord: item.latestPlayRecord,
@@ -236,6 +268,7 @@ export async function getPlayStats(input: {
       (total, item) => total + item.records.length,
       0
     ),
+    totalWatchSeconds,
     todayActiveUsers: userStats.filter((item) =>
       item.lastActiveAt ? isSameLocalDay(item.lastActiveAt, now) : false
     ).length,
@@ -244,6 +277,8 @@ export async function getPlayStats(input: {
     ).length,
     todayPlayRecords,
     last7DaysPlayRecords,
+    todayWatchSeconds,
+    last7DaysWatchSeconds,
     lastWatchAt,
     topTitles: Array.from(titleCounts.values())
       .sort((a, b) => {

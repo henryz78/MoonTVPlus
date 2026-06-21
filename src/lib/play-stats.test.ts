@@ -91,6 +91,7 @@ describe('play stats helpers', () => {
     expect(result.viewerRole).toBe('owner');
     expect(result.totalUsers).toBe(2);
     expect(result.totalPlayRecords).toBe(2);
+    expect(result.totalWatchSeconds).toBe(100);
     expect(result.todayPlayRecords).toBe(1);
     expect(result.topTitles.map((item) => item.title)).toEqual([
       '站长片单',
@@ -128,7 +129,47 @@ describe('play stats helpers', () => {
     expect(result.totalUsers).toBe(1);
     expect(result.userRanking).toHaveLength(1);
     expect(result.userRanking[0].username).toBe('alice');
+    expect(result.userRanking[0].watchSeconds).toBe(50);
     expect(result.recentRecords[0].username).toBe('alice');
+  });
+
+  it('sums watch duration with sane bounds per user and title', async () => {
+    (db.getUserListV2 as jest.Mock).mockResolvedValue({
+      users: [user('alice', 'user'), user('bob', 'user')],
+      total: 2,
+    });
+    (db.getAllPlayRecords as jest.Mock).mockImplementation(async (username) => {
+      if (username === 'alice') {
+        return {
+          a: { ...record('沙丘', ONE_HOUR_AGO, 120), total_time: 180 },
+          b: { ...record('沙丘', ONE_HOUR_AGO, 999), total_time: 300 },
+        };
+      }
+      return {
+        c: record('异形', TWO_DAYS_AGO, -30),
+      };
+    });
+
+    const result = await getPlayStats({ operatorUsername: 'owner' });
+
+    expect(result.totalWatchSeconds).toBe(420);
+    expect(result.last7DaysWatchSeconds).toBe(420);
+    expect(result.todayWatchSeconds).toBe(420);
+    expect(
+      result.userRanking.find((item) => item.username === 'alice')
+    ).toMatchObject({
+      watchSeconds: 420,
+    });
+    expect(
+      result.userRanking.find((item) => item.username === 'bob')
+    ).toMatchObject({
+      watchSeconds: 0,
+    });
+    expect(
+      result.topTitles.find((item) => item.title === '沙丘')
+    ).toMatchObject({
+      watchSeconds: 420,
+    });
   });
 
   it('returns online count without exposing usernames', async () => {

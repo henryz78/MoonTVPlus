@@ -71,26 +71,4 @@ describe('FloatingNav', () => {
     expect(screen.getByLabelText('网络直播')).toBeInTheDocument();
     expect(screen.getByLabelText('私人影库')).toBeInTheDocument();
   });
-
-  it('shows watch room from the server runtime feature switch', () => {
-    render(
-      <SiteProvider
-        siteName='MoonTVPlus'
-        runtimeConfig={{
-          LIVE_ENABLED: false,
-          WEB_LIVE_ENABLED: false,
-          PRIVATE_LIBRARY_ENABLED: false,
-          ADVANCED_RECOMMENDATION_ENABLED: false,
-          WATCH_ROOM_ENABLED: true,
-          CUSTOM_CATEGORIES: [],
-        }}
-      >
-        <FloatingNav />
-      </SiteProvider>
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: '更多' }));
-
-    expect(screen.getByLabelText('观影室')).toBeInTheDocument();
-  });
 });

@@ -55,6 +55,7 @@ import {
   pruneLocalEpisodeProgressStorage,
   saveLocalEpisodeProgress,
 } from '@/lib/episode-progress';
+import { RealWatchTimeTracker, reportWatchTime } from '@/lib/watch-time.client';
 import { isNetdiskSource, normalizeNetdiskSource } from '@/lib/netdisk/source';
 import {
   getRecommendationCache,
@@ -1909,6 +1910,8 @@ function PlayPageClient() {
   const saveIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastSaveTimeRef = useRef<number>(0);
   const lastSavedPlayTimeRef = useRef<number | null>(null);
+  const watchTimeTrackerRef = useRef(new RealWatchTimeTracker());
+  const watchTimeBufferedSecondsRef = useRef(0);
 
   // 下集预缓存相关
   const nextEpisodePreCacheTriggeredRef = useRef<boolean>(false);
@@ -6209,6 +6212,69 @@ function PlayPageClient() {
   // ---------------------------------------------------------------------------
   // 播放记录相关
   // ---------------------------------------------------------------------------
+  const getCurrentWatchTimeState = () => {
+    const player = artPlayerRef.current;
+    if (!player) return null;
+    return {
+      now: Date.now(),
+      position: player.currentTime || 0,
+      playing: !player.paused,
+      visible: typeof document === 'undefined' || document.visibilityState === 'visible',
+      playbackRate: player.playbackRate || 1,
+    };
+  };
+
+  const resetWatchTimeTracker = () => {
+    const state = getCurrentWatchTimeState();
+    if (state) watchTimeTrackerRef.current.reset(state);
+  };
+
+  const flushWatchTime = (force = false) => {
+    const state = getCurrentWatchTimeState();
+    if (!state) return;
+
+    const delta = watchTimeTrackerRef.current.tick(state);
+    if (delta > 0) {
+      watchTimeBufferedSecondsRef.current += delta;
+    }
+
+    if (!force && watchTimeBufferedSecondsRef.current < 15) {
+      return;
+    }
+
+    const deltaSeconds = watchTimeBufferedSecondsRef.current;
+    if (deltaSeconds <= 0) return;
+
+    const detail = detailRef.current;
+    if (
+      !detail ||
+      !currentSourceRef.current ||
+      !currentIdRef.current ||
+      !videoTitleRef.current ||
+      !detail.source_name
+    ) {
+      return;
+    }
+
+    watchTimeBufferedSecondsRef.current = 0;
+    reportWatchTime({
+      source: currentSourceRef.current,
+      id: currentIdRef.current,
+      title: videoTitleRef.current,
+      sourceName: detail.source_name,
+      cover: detail.poster || '',
+      year: detail.year || '',
+      episode: currentEpisodeIndexRef.current + 1,
+      totalEpisodes: detail.episodes?.length || 1,
+      totalTime: Math.floor(artPlayerRef.current?.duration || 0),
+      progressTime: Math.floor(artPlayerRef.current?.currentTime || 0),
+      deltaSeconds,
+    }).catch((error) => {
+      watchTimeBufferedSecondsRef.current += deltaSeconds;
+      console.warn('[WatchTime] 上报观看时长失败:', error);
+    });
+  };
+
   // 保存播放进度
   const saveCurrentPlayProgress = async () => {
     if (
@@ -6272,6 +6338,7 @@ function PlayPageClient() {
   useEffect(() => {
     // 页面即将卸载时保存播放进度和清理资源
     const handleBeforeUnload = () => {
+      flushWatchTime(true);
       saveCurrentPlayProgress();
       releaseWakeLock();
       cleanupPlayer();
@@ -6280,9 +6347,11 @@ function PlayPageClient() {
     // 页面可见性变化时保存播放进度和释放 Wake Lock
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
+        flushWatchTime(true);
         saveCurrentPlayProgress();
         releaseWakeLock();
       } else if (document.visibilityState === 'visible') {
+        resetWatchTimeTracker();
         // 页面重新可见时，如果正在播放则重新请求 Wake Lock
         if (artPlayerRef.current && !artPlayerRef.current.paused) {
           requestWakeLock();
@@ -7749,6 +7818,7 @@ function PlayPageClient() {
 
           // 标记播放器已就绪，触发 usePlaySync 设置事件监听器
           setPlayerReady(true);
+          resetWatchTimeTracker();
           console.log('[PlayPage] Player ready, triggering sync setup');
 
           // 应用进度条图标配置 - 尽早执行
@@ -8042,16 +8112,37 @@ function PlayPageClient() {
 
         // 监听播放状态变化，控制 Wake Lock
         artPlayerRef.current.on('play', () => {
+          resetWatchTimeTracker();
           requestWakeLock();
         });
 
         artPlayerRef.current.on('pause', () => {
+          flushWatchTime(true);
+          resetWatchTimeTracker();
           releaseWakeLock();
           saveCurrentPlayProgress();
         });
 
         artPlayerRef.current.on('video:ended', () => {
+          flushWatchTime(true);
           releaseWakeLock();
+        });
+
+        artPlayerRef.current.on('video:seeking', () => {
+          flushWatchTime(true);
+          resetWatchTimeTracker();
+        });
+
+        artPlayerRef.current.on('video:seeked', () => {
+          resetWatchTimeTracker();
+        });
+
+        artPlayerRef.current.on('video:ratechange', () => {
+          resetWatchTimeTracker();
+        });
+
+        artPlayerRef.current.on('video:timeupdate', () => {
+          flushWatchTime(false);
         });
 
         // 如果播放器初始化时已经在播放状态，则请求 Wake Lock

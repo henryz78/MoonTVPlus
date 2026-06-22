@@ -11,6 +11,11 @@ import {
   UserActivityUser,
 } from './admin-user-activity';
 import { db } from './db';
+import {
+  getWatchTimeEntries,
+  getWatchTimeEntrySeconds,
+  WatchTimeEntry,
+} from './watch-time';
 
 const USER_FETCH_LIMIT = 100000;
 const TOP_LIMIT = 10;
@@ -84,11 +89,12 @@ function progressPercent(record: PlayRecord) {
   );
 }
 
-function watchSeconds(record: PlayRecord) {
-  const playTime = Number.isFinite(record.play_time) ? record.play_time : 0;
-  const totalTime = Number.isFinite(record.total_time) ? record.total_time : 0;
-  const upperBound = totalTime > 0 ? totalTime : playTime;
-  return Math.max(0, Math.floor(Math.min(playTime, upperBound)));
+function watchEntryProgressPercent(entry: WatchTimeEntry) {
+  if (!entry.totalTime) return 0;
+  return Math.min(
+    100,
+    Math.max(0, Math.round((entry.progressTime / entry.totalTime) * 100))
+  );
 }
 
 function toRecordSummary(
@@ -101,8 +107,23 @@ function toRecordSummary(
     episode: record.index,
     sourceName: record.source_name,
     progressPercent: progressPercent(record),
-    watchSeconds: watchSeconds(record),
+    watchSeconds: 0,
     saveTime: record.save_time,
+  };
+}
+
+function watchEntryToRecordSummary(
+  username: string,
+  entry: WatchTimeEntry
+): PlayStatsRecordSummary {
+  return {
+    username,
+    title: entry.title,
+    episode: entry.episode,
+    sourceName: entry.sourceName,
+    progressPercent: watchEntryProgressPercent(entry),
+    watchSeconds: entry.watchSeconds,
+    saveTime: entry.lastWatchedAt,
   };
 }
 
@@ -131,6 +152,19 @@ function isSameLocalDay(timestamp: number, now: number) {
     current.getMonth() === target.getMonth() &&
     current.getDate() === target.getDate()
   );
+}
+
+function localDayRange(timestamp: number) {
+  const date = new Date(timestamp);
+  const start = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate()
+  ).getTime();
+  return {
+    startAt: start,
+    endAt: start + 24 * 60 * 60 * 1000 - 1,
+  };
 }
 
 async function listAllUsers() {
@@ -186,14 +220,15 @@ async function listVisibleUsersForStats(input: {
 }
 
 async function buildUserStats(user: UserActivityUser) {
-  const [records, deviceLastActiveAt] = await Promise.all([
+  const [records, watchEntries, deviceLastActiveAt] = await Promise.all([
     db.getAllPlayRecords(user.username),
+    getWatchTimeEntries(user.username),
     getLastActiveAt(user.username),
   ]);
   const recordList = Object.values(records);
   const latestRecord = latestRecordFrom(records);
-  const totalWatchSeconds = recordList.reduce(
-    (total, record) => total + watchSeconds(record),
+  const totalWatchSeconds = watchEntries.reduce(
+    (total, entry) => total + entry.watchSeconds,
     0
   );
   const lastActiveAt = newestActivityTime(
@@ -204,6 +239,7 @@ async function buildUserStats(user: UserActivityUser) {
   return {
     user,
     records: recordList,
+    watchEntries,
     watchSeconds: totalWatchSeconds,
     lastActiveAt,
     isOnline: Boolean(
@@ -226,6 +262,8 @@ export async function getPlayStats(input: {
   const userStats = await Promise.all(visibleUsers.map(buildUserStats));
   const now = Date.now();
   const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+  const todayRange = localDayRange(now);
+  const last7DaysRange = { startAt: sevenDaysAgo, endAt: now };
   const titleCounts = new Map<string, PlayStatsTitleSummary>();
   const recentRecords: PlayStatsRecordSummary[] = [];
 
@@ -237,22 +275,30 @@ export async function getPlayStats(input: {
   let lastWatchAt: number | null = null;
 
   for (const item of userStats) {
-    for (const record of item.records) {
-      const recordWatchSeconds = watchSeconds(record);
+    for (const entry of item.watchEntries) {
+      const recordWatchSeconds = entry.watchSeconds;
+      const recordTodayWatchSeconds = getWatchTimeEntrySeconds(
+        entry,
+        todayRange
+      );
+      const recordLast7DaysWatchSeconds = getWatchTimeEntrySeconds(
+        entry,
+        last7DaysRange
+      );
       totalWatchSeconds += recordWatchSeconds;
-      if (isSameLocalDay(record.save_time, now)) {
+      if (recordTodayWatchSeconds > 0) {
         todayPlayRecords += 1;
-        todayWatchSeconds += recordWatchSeconds;
+        todayWatchSeconds += recordTodayWatchSeconds;
       }
-      if (record.save_time >= sevenDaysAgo) {
+      if (recordLast7DaysWatchSeconds > 0) {
         last7DaysPlayRecords += 1;
-        last7DaysWatchSeconds += recordWatchSeconds;
+        last7DaysWatchSeconds += recordLast7DaysWatchSeconds;
       }
-      if (!lastWatchAt || record.save_time > lastWatchAt) {
-        lastWatchAt = record.save_time;
+      if (!lastWatchAt || entry.lastWatchedAt > lastWatchAt) {
+        lastWatchAt = entry.lastWatchedAt;
       }
 
-      const title = record.title || '未命名影片';
+      const title = entry.title || '未命名影片';
       const existing = titleCounts.get(title);
       titleCounts.set(title, {
         title,
@@ -260,10 +306,10 @@ export async function getPlayStats(input: {
         watchSeconds: (existing?.watchSeconds || 0) + recordWatchSeconds,
         latestSaveTime: Math.max(
           existing?.latestSaveTime || 0,
-          record.save_time
+          entry.lastWatchedAt
         ),
       });
-      recentRecords.push(toRecordSummary(item.user.username, record));
+      recentRecords.push(watchEntryToRecordSummary(item.user.username, entry));
     }
   }
 
@@ -278,8 +324,8 @@ export async function getPlayStats(input: {
       latestPlayRecord: item.latestPlayRecord,
     }))
     .sort((a, b) => {
-      if (b.playRecordCount !== a.playRecordCount) {
-        return b.playRecordCount - a.playRecordCount;
+      if (b.watchSeconds !== a.watchSeconds) {
+        return b.watchSeconds - a.watchSeconds;
       }
       if (a.lastActiveAt === b.lastActiveAt) {
         return a.username.localeCompare(b.username);

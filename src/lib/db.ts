@@ -17,6 +17,7 @@ import {
   RegistrationRequest,
   SkipConfig,
 } from './types';
+import { getWatchTimeUserKey } from './watch-time-keys';
 
 // storage type 常量: 'localstorage' | 'redis' | 'upstash' | 'kvrocks' | 'd1' | 'postgres'，默认 'localstorage'
 const IS_CLOUDFLARE_BUILD =
@@ -547,6 +548,7 @@ export class DbManager {
 
   async deleteUser(userName: string): Promise<void> {
     await this.storage.deleteUser(userName);
+    await this.deleteGlobalValue(getWatchTimeUserKey(userName));
   }
 
   // ---------- 用户相关（新版本） ----------
@@ -661,6 +663,7 @@ export class DbManager {
     if (typeof (this.storage as any).deleteUserV2 === 'function') {
       await (this.storage as any).deleteUserV2(userName);
     }
+    await this.deleteGlobalValue(getWatchTimeUserKey(userName));
   }
 
   async getUsersByTag(tagName: string): Promise<string[]> {

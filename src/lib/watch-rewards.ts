@@ -1,7 +1,7 @@
 import { getConfig } from '@/lib/config';
-import { PlayRecord } from '@/lib/types';
 
 import { db } from './db';
+import { getUserWatchSeconds } from './watch-time';
 
 const USER_FETCH_LIMIT = 100000;
 const SETTLEMENT_KEY = 'watch_rewards.latest_weekly_settlement';
@@ -117,13 +117,6 @@ function normalizeLimit(limit: number) {
   return Math.min(50, Math.max(1, Math.floor(limit || 10)));
 }
 
-function watchSeconds(record: PlayRecord) {
-  const playTime = Number.isFinite(record.play_time) ? record.play_time : 0;
-  const totalTime = Number.isFinite(record.total_time) ? record.total_time : 0;
-  const upperBound = totalTime > 0 ? totalTime : playTime;
-  return Math.max(0, Math.floor(Math.min(playTime, upperBound)));
-}
-
 function paginate<T>(items: T[], page: number, limit: number) {
   const normalizedPage = normalizePage(page);
   const normalizedLimit = normalizeLimit(limit);
@@ -237,22 +230,6 @@ function buildRowsFromTotals(
         qualified,
       };
     });
-}
-
-async function getUserWatchSeconds(
-  username: string,
-  range?: Pick<WatchWeekRange, 'startAt' | 'endAt'>
-) {
-  const records = await db.getAllPlayRecords(username);
-  return Object.values(records).reduce((total, record) => {
-    if (
-      range &&
-      (record.save_time < range.startAt || record.save_time > range.endAt)
-    ) {
-      return total;
-    }
-    return total + watchSeconds(record);
-  }, 0);
 }
 
 export function getRewardTier(seconds: number): WatchReward | null {

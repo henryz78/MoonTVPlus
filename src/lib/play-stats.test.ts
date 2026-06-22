@@ -3,12 +3,14 @@ import { getUserDevices } from '@/lib/refresh-token';
 import { db } from './db';
 import { getOnlineCount, getPlayStats } from './play-stats';
 import { getUserPresence } from './user-presence';
+import { getWatchTimeUserKey } from './watch-time';
 
 jest.mock('./db', () => ({
   db: {
     getUserInfoV2: jest.fn(),
     getUserListV2: jest.fn(),
     getAllPlayRecords: jest.fn(),
+    getGlobalValue: jest.fn(),
   },
 }));
 
@@ -44,6 +46,44 @@ const record = (title: string, saveTime: number, playTime = 50) => ({
   search_title: '',
 });
 
+const watchLedger = (
+  entries: Array<{
+    key: string;
+    title: string;
+    watchSeconds: number;
+    lastWatchedAt: number;
+    progressTime?: number;
+    dailySeconds?: Record<string, number>;
+  }>
+) =>
+  JSON.stringify({
+    version: 1,
+    updatedAt: Math.max(...entries.map((entry) => entry.lastWatchedAt), 0),
+    entries: Object.fromEntries(
+      entries.map((entry, index) => [
+        entry.key,
+        {
+          key: entry.key,
+          source: 'source',
+          id: String(index + 1),
+          title: entry.title,
+          sourceName: 'source',
+          cover: '',
+          year: '',
+          episode: 1,
+          totalEpisodes: 10,
+          totalTime: 100,
+          progressTime: entry.progressTime ?? 50,
+          watchSeconds: entry.watchSeconds,
+          dailySeconds: entry.dailySeconds || {},
+          firstWatchedAt: entry.lastWatchedAt,
+          lastWatchedAt: entry.lastWatchedAt,
+          lastReportedAt: entry.lastWatchedAt,
+        },
+      ])
+    ),
+  });
+
 describe('play stats helpers', () => {
   const originalUsername = process.env.USERNAME;
   let dateNowSpy: jest.SpyInstance<number, []>;
@@ -54,6 +94,7 @@ describe('play stats helpers', () => {
     dateNowSpy = jest.spyOn(Date, 'now').mockReturnValue(NOW);
     (getUserDevices as jest.Mock).mockResolvedValue([]);
     (getUserPresence as jest.Mock).mockResolvedValue(null);
+    (db.getGlobalValue as jest.Mock).mockResolvedValue(null);
     (db.getUserInfoV2 as jest.Mock).mockImplementation(async (username) => {
       if (username === 'admin') return { role: 'admin', banned: false };
       if (username === 'alice') return { role: 'user', banned: false };
@@ -81,6 +122,31 @@ describe('play stats helpers', () => {
         return { 'source+owner': record('站长片单', ONE_HOUR_AGO) };
       }
       return { 'source+alice': record('沙丘', TWO_DAYS_AGO) };
+    });
+    (db.getGlobalValue as jest.Mock).mockImplementation(async (key) => {
+      if (key === getWatchTimeUserKey('owner')) {
+        return watchLedger([
+          {
+            key: 'source+owner:1',
+            title: '站长片单',
+            watchSeconds: 50,
+            lastWatchedAt: ONE_HOUR_AGO,
+            dailySeconds: { '2026-06-18': 50 },
+          },
+        ]);
+      }
+      if (key === getWatchTimeUserKey('alice')) {
+        return watchLedger([
+          {
+            key: 'source+alice:1',
+            title: '沙丘',
+            watchSeconds: 50,
+            lastWatchedAt: TWO_DAYS_AGO,
+            dailySeconds: { '2026-06-16': 50 },
+          },
+        ]);
+      }
+      return null;
     });
     (getUserDevices as jest.Mock).mockImplementation(async (username) =>
       username === 'owner' ? [{ lastUsed: ONE_HOUR_AGO }] : []
@@ -112,6 +178,7 @@ describe('play stats helpers', () => {
       total: 3,
     });
     (db.getAllPlayRecords as jest.Mock).mockResolvedValue({});
+    (db.getGlobalValue as jest.Mock).mockResolvedValue(null);
 
     const result = await getPlayStats({ operatorUsername: 'admin' });
 
@@ -128,6 +195,18 @@ describe('play stats helpers', () => {
     (db.getAllPlayRecords as jest.Mock).mockResolvedValue({
       'source+alice': record('我的电影', ONE_HOUR_AGO),
     });
+    (db.getGlobalValue as jest.Mock).mockResolvedValue(
+      watchLedger([
+        {
+          key: 'source+alice:1',
+          title: '我的电影',
+          watchSeconds: 50,
+          lastWatchedAt: ONE_HOUR_AGO,
+          progressTime: 50,
+          dailySeconds: { '2026-06-18': 50 },
+        },
+      ])
+    );
 
     const result = await getPlayStats({ operatorUsername: 'alice' });
 
@@ -157,7 +236,7 @@ describe('play stats helpers', () => {
     expect(result.recentRecords[0]).not.toHaveProperty('username');
   });
 
-  it('sums watch duration with sane bounds per user and title', async () => {
+  it('sums persistent real watch duration per user and title', async () => {
     (db.getUserListV2 as jest.Mock).mockResolvedValue({
       users: [user('alice', 'user'), user('bob', 'user')],
       total: 2,
@@ -172,6 +251,27 @@ describe('play stats helpers', () => {
       return {
         c: record('异形', TWO_DAYS_AGO, -30),
       };
+    });
+    (db.getGlobalValue as jest.Mock).mockImplementation(async (key) => {
+      if (key === getWatchTimeUserKey('alice')) {
+        return watchLedger([
+          {
+            key: 'source+a:1',
+            title: '沙丘',
+            watchSeconds: 120,
+            lastWatchedAt: ONE_HOUR_AGO,
+            dailySeconds: { '2026-06-18': 120 },
+          },
+          {
+            key: 'source+b:1',
+            title: '沙丘',
+            watchSeconds: 300,
+            lastWatchedAt: ONE_HOUR_AGO,
+            dailySeconds: { '2026-06-18': 300 },
+          },
+        ]);
+      }
+      return null;
     });
 
     const result = await getPlayStats({ operatorUsername: 'owner' });

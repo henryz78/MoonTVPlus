@@ -54,6 +54,7 @@ import {
 } from '@/lib/db.client';
 import { loadTVPlayerUpDownAction } from '@/lib/tv-preferences';
 import { SearchResult } from '@/lib/types';
+import { RealWatchTimeTracker, reportWatchTime } from '@/lib/watch-time.client';
 
 import TVNativeVideo from '@/components/tv/player/TVNativeVideo';
 import {
@@ -484,6 +485,8 @@ function TVPlayClient() {
   } | null>(null);
   const [time, setTime] = useState({ current: 0, duration: 0 });
   const timeRef = useRef({ current: 0, duration: 0 });
+  const watchTimeTrackerRef = useRef(new RealWatchTimeTracker());
+  const watchTimeBufferedSecondsRef = useRef(0);
   const episodesPanelRef = useRef<HTMLElement | null>(null);
   const episodeButtonRefs = useRef<Record<number, HTMLButtonElement | null>>(
     {}
@@ -743,6 +746,7 @@ function TVPlayClient() {
 
   const switchEpisode = (next: number) => {
     if (!detail) return;
+    flushWatchTime(true);
     const max = detail.episodes.length - 1;
     const target = Math.max(0, Math.min(max, next));
     setStartTime(0);
@@ -751,11 +755,67 @@ function TVPlayClient() {
     setShowPanel(true);
   };
 
+  const getCurrentWatchTimeState = () => {
+    const video = document.querySelector<HTMLVideoElement>(
+      '[data-tv-player-root] video'
+    );
+    if (!video) return null;
+
+    return {
+      now: Date.now(),
+      position: video.currentTime || 0,
+      playing: isPlaying && !video.paused,
+      visible: document.visibilityState === 'visible',
+      playbackRate: video.playbackRate || 1,
+    };
+  };
+
+  const resetWatchTimeTracker = () => {
+    const state = getCurrentWatchTimeState();
+    if (state) watchTimeTrackerRef.current.reset(state);
+  };
+
+  const flushWatchTime = (force = false) => {
+    const state = getCurrentWatchTimeState();
+    if (!state) return;
+
+    const delta = watchTimeTrackerRef.current.tick(state);
+    if (delta > 0) {
+      watchTimeBufferedSecondsRef.current += delta;
+    }
+
+    if (!force && watchTimeBufferedSecondsRef.current < 15) {
+      return;
+    }
+
+    const deltaSeconds = watchTimeBufferedSecondsRef.current;
+    if (deltaSeconds <= 0 || !detail?.source || !detail.id) return;
+
+    watchTimeBufferedSecondsRef.current = 0;
+    reportWatchTime({
+      source: detail.source,
+      id: detail.id,
+      title: detail.title,
+      sourceName: detail.source_name || detail.source,
+      cover: detail.poster || '',
+      year: detail.year || '',
+      episode: episodeIndex + 1,
+      totalEpisodes: detail.episodes?.length || 1,
+      totalTime: Math.floor(timeRef.current.duration || 0),
+      progressTime: Math.floor(timeRef.current.current || 0),
+      deltaSeconds,
+    }).catch((error) => {
+      watchTimeBufferedSecondsRef.current += deltaSeconds;
+      console.warn('[WatchTime] TV 上报观看时长失败:', error);
+    });
+  };
+
   const onTime = useCallback(
     (current: number, duration: number) => {
       const next = { current, duration };
       timeRef.current = next;
       setTime(next);
+      flushWatchTime(false);
 
       if (!skipConfig?.enable || !duration) return;
       const video = document.querySelector<HTMLVideoElement>(
@@ -789,8 +849,33 @@ function TVPlayClient() {
         switchEpisode(episodeIndex + 1);
       }
     },
-    [detail, episodeIndex, skipConfig]
+    [detail, episodeIndex, isPlaying, skipConfig]
   );
+
+  useEffect(() => {
+    resetWatchTimeTracker();
+  }, [detail?.source, detail?.id, episodeIndex, isPlaying]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        flushWatchTime(true);
+      } else {
+        resetWatchTimeTracker();
+      }
+    };
+    const handleBeforeUnload = () => {
+      flushWatchTime(true);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      flushWatchTime(true);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [detail?.source, detail?.id, episodeIndex]);
 
   useEffect(() => {
     if (!detail) return;
@@ -864,7 +949,9 @@ function TVPlayClient() {
       0,
       Math.min(duration, (video.currentTime || 0) + delta)
     );
+    flushWatchTime(true);
     video.currentTime = next;
+    resetWatchTimeTracker();
     if (showOverlay) showSeekOverlay(next, duration, delta);
   };
 
@@ -875,7 +962,9 @@ function TVPlayClient() {
     if (!video || !Number.isFinite(video.duration)) return;
     const duration = video.duration || 0;
     const next = Math.max(0, Math.min(duration, value));
+    flushWatchTime(true);
     video.currentTime = next;
+    resetWatchTimeTracker();
     showSeekOverlay(next, duration, 0);
   };
 
@@ -1258,6 +1347,18 @@ function TVPlayClient() {
     );
   }, [detail?.episodes?.length, episodePage, episodePages]);
 
+  const handlePlayingChange = (playing: boolean) => {
+    if (playing) {
+      setIsPlaying(true);
+      resetWatchTimeTracker();
+      return;
+    }
+
+    flushWatchTime(true);
+    setIsPlaying(false);
+    resetWatchTimeTracker();
+  };
+
   if (loading) {
     return (
       <main className='fixed inset-0 flex items-center justify-center bg-black text-3xl font-bold text-white'>
@@ -1333,7 +1434,7 @@ function TVPlayClient() {
           command={toggleCommand}
           startTime={startTime}
           onError={() => setPlaybackError(true)}
-          onPlayingChange={setIsPlaying}
+          onPlayingChange={handlePlayingChange}
           onBufferingChange={setIsBuffering}
           adFilterEnabled={adFilterEnabled}
           playbackRate={playbackRate}

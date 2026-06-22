@@ -4,6 +4,7 @@
 // 使用方式: node watch-room-standalone-server.js --port 3001 --auth YOUR_SECRET_KEY
 
 import { createServer } from 'http';
+import { createHmac, timingSafeEqual } from 'crypto';
 import { Server } from 'socket.io';
 import { WatchRoomServer } from '../lib/watch-room-server';
 
@@ -19,22 +20,66 @@ if (!authKey) {
 
 const httpServer = createServer();
 
+function encodeBase64Url(value) {
+  return Buffer.from(value)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+}
+
+function verifyAccessToken(token) {
+  const [payload, signature, extra] = String(token || '').split('.');
+  if (!payload || !signature || extra) return false;
+
+  const expected = encodeBase64Url(
+    createHmac('sha256', authKey).update(payload).digest()
+  );
+  const actualBuffer = Buffer.from(signature);
+  const expectedBuffer = Buffer.from(expected);
+  if (
+    actualBuffer.length !== expectedBuffer.length ||
+    !timingSafeEqual(actualBuffer, expectedBuffer)
+  ) {
+    return false;
+  }
+
+  try {
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padding =
+      normalized.length % 4 === 0
+        ? ''
+        : '='.repeat(4 - (normalized.length % 4));
+    const data = JSON.parse(
+      Buffer.from(`${normalized}${padding}`, 'base64').toString('utf8')
+    );
+    return Boolean(data.username) && data.expiresAt >= Math.floor(Date.now() / 1000);
+  } catch {
+    return false;
+  }
+}
+
 const io = new Server(httpServer, {
   cors: {
     origin: '*',
     methods: ['GET', 'POST'],
     credentials: true,
   },
-  // 添加鉴权中间件
-  allowRequest: (req, callback) => {
-    const auth = req.headers.authorization;
-    if (auth === `Bearer ${authKey}`) {
-      callback(null, true);
-    } else {
-      console.log('[WatchRoom] Unauthorized connection attempt');
-      callback('Unauthorized', false);
-    }
-  },
+});
+
+io.use((socket, next) => {
+  const headerToken = String(
+    socket.handshake.headers.authorization || ''
+  ).replace(/^Bearer\s+/i, '');
+  const token = socket.handshake.auth?.token || headerToken;
+
+  if (token === authKey || verifyAccessToken(token)) {
+    next();
+    return;
+  }
+
+  console.log('[WatchRoom] Unauthorized connection attempt');
+  next(new Error('Unauthorized'));
 });
 
 // 初始化观影室服务器
@@ -42,7 +87,6 @@ const watchRoomServer = new WatchRoomServer(io);
 
 httpServer.listen(port, () => {
   console.log(`[WatchRoom] Standalone server running on port ${port}`);
-  console.log(`[WatchRoom] Auth key: ${authKey.substring(0, 8)}...`);
 });
 
 // 优雅关闭

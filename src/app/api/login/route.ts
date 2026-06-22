@@ -32,11 +32,14 @@ function buildLoginResponse(authToken?: string | null) {
   const body: Record<string, unknown> = { ok: true };
 
   if (authToken) {
-    body.token = authToken;
     const authInfo = parseAuthInfo(authToken);
     if (authInfo) {
-      const { password, ...rest } = authInfo;
-      body.auth = rest;
+      body.auth = {
+        username: authInfo.username,
+        role: authInfo.role,
+        timestamp: authInfo.timestamp,
+        refreshExpires: authInfo.refreshExpires,
+      };
     }
   }
 

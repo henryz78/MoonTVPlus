@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthInfoFromCookie } from '@/lib/auth';
 import { getConfig } from '@/lib/config';
+import { createWatchRoomAccessToken } from '@/lib/watch-room-access-token';
 
 export const runtime = 'nodejs';
 
@@ -35,12 +36,25 @@ export async function GET(request: NextRequest) {
         }
       : (await getConfig()).WatchRoomConfig;
 
-  const externalServerAuth =
+  const externalServerSecret =
     watchRoomConfig?.Enabled && watchRoomConfig.ServerType === 'external'
       ? watchRoomConfig.ExternalServerAuth
       : null;
 
-  return NextResponse.json({
-    externalServerAuth: externalServerAuth || null,
-  });
+  return NextResponse.json(
+    {
+      externalServerAuth: externalServerSecret
+        ? createWatchRoomAccessToken(
+            authInfo.username,
+            externalServerSecret,
+            5 * 60
+          )
+        : null,
+    },
+    {
+      headers: {
+        'Cache-Control': 'no-store',
+      },
+    }
+  );
 }

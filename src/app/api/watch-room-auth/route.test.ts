@@ -1,6 +1,7 @@
 import { AdminConfig } from '@/lib/admin.types';
 import { getAuthInfoFromCookie } from '@/lib/auth';
 import { getConfig } from '@/lib/config';
+import { verifyWatchRoomAccessToken } from '@/lib/watch-room-access-token';
 
 import { GET } from './route';
 
@@ -65,7 +66,7 @@ describe('GET /api/watch-room-auth', () => {
     }
   });
 
-  it('returns external server auth from admin config for logged-in users', async () => {
+  it('returns a short-lived access token without exposing the shared secret', async () => {
     const response = await GET({
       url: 'https://example.com/api/watch-room-auth',
     } as Parameters<typeof GET>[0]);
@@ -74,7 +75,10 @@ describe('GET /api/watch-room-auth', () => {
     ).body;
 
     expect(response.status).toBe(200);
-    expect(body.externalServerAuth).toBe('secret');
+    expect(body.externalServerAuth).not.toBe('secret');
+    expect(
+      verifyWatchRoomAccessToken(body.externalServerAuth, 'secret')
+    ).toEqual(expect.objectContaining({ username: 'user' }));
   });
 
   it('rejects guests', async () => {

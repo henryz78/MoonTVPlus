@@ -173,7 +173,14 @@ export async function GET(
 ) {
   console.log(request.url);
 
-  const cronPassword = process.env.CRON_PASSWORD || 'mtvpls';
+  const cronPassword = process.env.CRON_PASSWORD || process.env.PASSWORD;
+  if (!cronPassword) {
+    return NextResponse.json(
+      { success: false, message: 'Cron authentication is not configured' },
+      { status: 503 }
+    );
+  }
+
   if (params.password !== cronPassword) {
     return NextResponse.json(
       { success: false, message: 'Unauthorized' },

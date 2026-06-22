@@ -8,6 +8,7 @@ import { Suspense, useEffect, useState } from 'react';
 
 import { CURRENT_VERSION } from '@/lib/version';
 import { checkForUpdates, UpdateStatus } from '@/lib/version_check';
+import { processImageUrl } from '@/lib/utils';
 
 import { useSite } from '@/components/SiteProvider';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -133,7 +134,7 @@ function LoginPageClient() {
         if (urls.length > 0) {
           // 随机选择一张背景图
           const randomIndex = Math.floor(Math.random() * urls.length);
-          setBackgroundImage(urls[randomIndex]);
+          setBackgroundImage(processImageUrl(urls[randomIndex]));
         }
       }
 

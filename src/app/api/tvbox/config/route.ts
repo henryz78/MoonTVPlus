@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthInfoFromCookie } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { generateTvboxToken } from '@/lib/tvbox-token';
 
 export const runtime = 'nodejs';
 
@@ -19,9 +21,8 @@ export async function GET(request: NextRequest) {
 
   // 检查是否开启订阅功能
   const enableSubscribe = process.env.ENABLE_TVBOX_SUBSCRIBE === 'true';
-  const subscribeToken = process.env.TVBOX_SUBSCRIBE_TOKEN;
 
-  if (!enableSubscribe || !subscribeToken) {
+  if (!enableSubscribe) {
     return NextResponse.json(
       {
         enabled: false,
@@ -33,6 +34,12 @@ export async function GET(request: NextRequest) {
         },
       }
     );
+  }
+
+  let subscribeToken = await db.getTvboxSubscribeToken(authInfo.username);
+  if (!subscribeToken) {
+    subscribeToken = generateTvboxToken();
+    await db.setTvboxSubscribeToken(authInfo.username, subscribeToken);
   }
 
   // 构建订阅链接

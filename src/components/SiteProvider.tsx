@@ -9,7 +9,6 @@ const SiteContext = createContext<{
   announcement?: string;
   announcementForceRead?: boolean;
   runtimeConfig?: NavigationRuntimeConfig;
-  tmdbApiKey?: string;
 }>({
   // 默认值
   siteName: 'MoonTVPlus',
@@ -17,7 +16,6 @@ const SiteContext = createContext<{
     '本网站仅提供影视信息搜索服务，所有内容均来自第三方网站。本站不存储任何视频资源，不对任何内容的准确性、合法性、完整性负责。',
   announcementForceRead: false,
   runtimeConfig: undefined,
-  tmdbApiKey: '',
 });
 
 export const useSite = () => useContext(SiteContext);
@@ -28,14 +26,12 @@ export function SiteProvider({
   announcement,
   announcementForceRead,
   runtimeConfig,
-  tmdbApiKey,
 }: {
   children: ReactNode;
   siteName: string;
   announcement?: string;
   announcementForceRead?: boolean;
   runtimeConfig?: NavigationRuntimeConfig;
-  tmdbApiKey?: string;
 }) {
   return (
     <SiteContext.Provider
@@ -44,7 +40,6 @@ export function SiteProvider({
         announcement,
         announcementForceRead,
         runtimeConfig,
-        tmdbApiKey,
       }}
     >
       {children}

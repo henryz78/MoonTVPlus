@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 
+import { processImageUrl } from '@/lib/utils';
+
 import { BackButton } from './BackButton';
 import FloatingNav from './FloatingNav';
 import MobileHeader from './MobileHeader';
@@ -49,7 +51,7 @@ const PageLayout = ({ children, activePath = '/', hideNavigation = false }: Page
     }
 
     const randomIndex = Math.floor(Math.random() * urls.length);
-    setBackgroundImage(urls[randomIndex]);
+    setBackgroundImage(processImageUrl(urls[randomIndex]));
   }, [shouldShowSharedBackground]);
 
   return (

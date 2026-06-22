@@ -272,7 +272,11 @@ export function WatchRoomProvider({ children }: WatchRoomProviderProps) {
 
           // 只在启用了观影室时才连接
           if (watchRoomConfig.enabled) {
-            console.log('[WatchRoom] Connecting with config:', watchRoomConfig);
+            console.log('[WatchRoom] Connecting with config:', {
+              enabled: watchRoomConfig.enabled,
+              serverType: watchRoomConfig.serverType,
+              externalServerUrl: watchRoomConfig.externalServerUrl,
+            });
 
             // 设置重连回调
             const { watchRoomSocketManager } = await import('@/lib/watch-room-socket');

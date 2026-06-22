@@ -413,6 +413,14 @@ export function processImageUrl(originalUrl: string): string {
     return originalUrl;
   }
 
+  if (
+    originalUrl.startsWith('http://') &&
+    typeof window !== 'undefined' &&
+    window.location.protocol === 'https:'
+  ) {
+    return `/api/image-proxy?url=${encodeURIComponent(originalUrl)}`;
+  }
+
   // 处理 TMDB 图片 URL 替换
   if (originalUrl.includes('image.tmdb.org')) {
     if (typeof window !== 'undefined') {

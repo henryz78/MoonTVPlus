@@ -8,6 +8,7 @@ import './globals.css';
 
 import { parseAuthInfo } from '@/lib/auth';
 import { getConfig } from '@/lib/config';
+import { serializeForInlineScript } from '@/lib/html-script';
 import { getUserFeatureAccess } from '@/lib/permissions';
 import { listEnabledSourceScripts } from '@/lib/source-script';
 
@@ -83,7 +84,6 @@ export default async function RootLayout({
   let enableComments = false;
   let danmakuAutoLoadDefault = true;
   let recommendationDataSource = 'Mixed';
-  let tmdbApiKey = '';
   let bangumiDataSource =
     (process.env.NEXT_PUBLIC_BANGUMI_DATA_SOURCE as any) || 'direct';
   let bangumiApiBaseUrl =
@@ -176,7 +176,6 @@ export default async function RootLayout({
     danmakuAutoLoadDefault = config.SiteConfig.DanmakuAutoLoadDefault !== false;
     recommendationDataSource =
       config.SiteConfig.RecommendationDataSource || 'Mixed';
-    tmdbApiKey = config.SiteConfig.TMDBApiKey || '';
     bangumiDataSource = config.SiteConfig.BangumiDataSource || 'direct';
     bangumiApiBaseUrl =
       config.SiteConfig.BangumiApiBaseUrl || 'https://api.bgm.tv';
@@ -357,7 +356,7 @@ export default async function RootLayout({
         {/* eslint-disable-next-line @next/next/no-sync-scripts */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `window.RUNTIME_CONFIG = ${JSON.stringify(runtimeConfig)};`,
+            __html: `window.RUNTIME_CONFIG = ${serializeForInlineScript(runtimeConfig)};`,
           }}
         />
       </head>
@@ -379,7 +378,6 @@ export default async function RootLayout({
             announcement={announcement}
             announcementForceRead={announcementForceRead}
             runtimeConfig={runtimeConfig}
-            tmdbApiKey={tmdbApiKey}
           >
             <WatchRoomProvider>
               <DownloadProvider>

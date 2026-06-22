@@ -86,6 +86,31 @@ describe('navigation helpers', () => {
     expect(groups.overflowItems).toEqual([]);
   });
 
+  it.each([
+    ['LIVE_ENABLED', '电视直播'],
+    ['WEB_LIVE_ENABLED', '网络直播'],
+    ['PRIVATE_LIBRARY_ENABLED', '私人影库'],
+    ['ADVANCED_RECOMMENDATION_ENABLED', '高级推荐'],
+    ['CUSTOM_CATEGORIES', '自定义'],
+  ] as const)('shows %s overflow item when its switch is enabled', (flag, label) => {
+    const runtimeConfig =
+      flag === 'CUSTOM_CATEGORIES'
+        ? { CUSTOM_CATEGORIES: [{ name: '专题', type: 'movie', query: '经典' }] }
+        : { [flag]: true };
+
+    const groups = buildNavigationGroups({ runtimeConfig });
+
+    expect(groups.overflowItems.map((item) => item.label)).toEqual([label]);
+  });
+
+  it('shows watch room from the server runtime feature switch', () => {
+    const groups = buildNavigationGroups({
+      runtimeConfig: { WATCH_ROOM_ENABLED: true },
+    });
+
+    expect(groups.overflowItems.map((item) => item.label)).toEqual(['观影室']);
+  });
+
   it('matches exact paths and douban category query paths', () => {
     expect(isNavigationItemActive('/search', '/search')).toBe(true);
     expect(

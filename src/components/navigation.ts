@@ -19,6 +19,7 @@ export interface NavigationRuntimeConfig {
   WEB_LIVE_ENABLED?: boolean;
   PRIVATE_LIBRARY_ENABLED?: boolean;
   ADVANCED_RECOMMENDATION_ENABLED?: boolean;
+  WATCH_ROOM_ENABLED?: boolean;
   CUSTOM_CATEGORIES?: unknown[];
 }
 
@@ -87,7 +88,7 @@ export function buildOverflowNavigationItems({
     });
   }
 
-  if (watchRoomEnabled) {
+  if (watchRoomEnabled || runtimeConfig?.WATCH_ROOM_ENABLED) {
     items.push({
       icon: Users,
       label: '观影室',

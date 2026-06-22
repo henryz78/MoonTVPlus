@@ -9,6 +9,7 @@ export interface AdminConfig {
     SiteName: string;
     Announcement: string;
     AnnouncementForceRead?: boolean; // 首页公告弹窗确认按钮延迟 3 秒
+    EnableWatchRoom?: boolean; // 启用观影室入口与客户端连接
     SearchDownstreamMaxPage: number;
     SiteInterfaceCacheTime: number;
     DoubanProxyType: string;

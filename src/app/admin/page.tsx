@@ -357,6 +357,7 @@ interface SiteConfig {
   SiteName: string;
   Announcement: string;
   AnnouncementForceRead?: boolean;
+  EnableWatchRoom?: boolean;
   SearchDownstreamMaxPage: number;
   SiteInterfaceCacheTime: number;
   DoubanProxyType: string;
@@ -10136,6 +10137,7 @@ const SiteConfigComponent = ({
     SiteName: '',
     Announcement: '',
     AnnouncementForceRead: false,
+    EnableWatchRoom: false,
     SearchDownstreamMaxPage: 1,
     SiteInterfaceCacheTime: 7200,
     DoubanProxyType: 'cmliussss-cdn-tencent',
@@ -10290,6 +10292,7 @@ const SiteConfigComponent = ({
         EnableComments: config.SiteConfig.EnableComments || false,
         AnnouncementForceRead:
           config.SiteConfig.AnnouncementForceRead || false,
+        EnableWatchRoom: config.SiteConfig.EnableWatchRoom || false,
       });
     }
   }, [config]);
@@ -10457,6 +10460,22 @@ const SiteConfigComponent = ({
               setSiteSettings((prev) => ({
                 ...prev,
                 AnnouncementForceRead: e.target.checked,
+              }))
+            }
+            className='h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-800'
+          />
+        </label>
+        <label className='mt-3 flex items-center justify-between gap-4 rounded-lg border border-gray-200 bg-gray-50/70 px-3 py-2 dark:border-gray-700 dark:bg-gray-800/50'>
+          <span className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+            启用观影室
+          </span>
+          <input
+            type='checkbox'
+            checked={siteSettings.EnableWatchRoom || false}
+            onChange={(e) =>
+              setSiteSettings((prev) => ({
+                ...prev,
+                EnableWatchRoom: e.target.checked,
               }))
             }
             className='h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-800'

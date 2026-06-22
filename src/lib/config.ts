@@ -8,6 +8,13 @@ import { DEFAULT_AI_SYSTEM_PROMPT } from './ai-defaults';
 const BUILTIN_DANMAKU_API_BASE = 'https://mtvpls-danmu.netlify.app/87654321';
 const DEFAULT_LIVE_REFRESH_INTERVAL_HOURS = 12;
 
+function getDefaultWatchRoomEnabled() {
+  return (
+    process.env.MOONTV_LITE !== 'true' &&
+    process.env.WATCH_ROOM_ENABLED === 'true'
+  );
+}
+
 function normalizeLiveRefreshIntervalHours(
   refreshIntervalHours?: number
 ): number {
@@ -271,6 +278,7 @@ async function getInitConfig(
         process.env.ANNOUNCEMENT ||
         '本网站仅提供影视信息搜索服务，所有内容均来自第三方网站。本站不存储任何视频资源，不对任何内容的准确性、合法性、完整性负责。',
       AnnouncementForceRead: process.env.ANNOUNCEMENT_FORCE_READ === 'true',
+      EnableWatchRoom: getDefaultWatchRoomEnabled(),
       SearchDownstreamMaxPage:
         Number(process.env.NEXT_PUBLIC_SEARCH_MAX_PAGE) || 5,
       SiteInterfaceCacheTime: cfgFile.cache_time || 7200,
@@ -510,6 +518,7 @@ export function configSelfCheck(adminConfig: AdminConfig): AdminConfig {
       SiteName: 'MoonTVPlus',
       Announcement: '',
       AnnouncementForceRead: false,
+      EnableWatchRoom: getDefaultWatchRoomEnabled(),
       SearchDownstreamMaxPage: 5,
       SiteInterfaceCacheTime: 7200,
       DoubanProxyType: 'cmliussss-cdn-tencent',
@@ -548,6 +557,9 @@ export function configSelfCheck(adminConfig: AdminConfig): AdminConfig {
   }
   if (adminConfig.SiteConfig.AnnouncementForceRead === undefined) {
     adminConfig.SiteConfig.AnnouncementForceRead = false;
+  }
+  if (adminConfig.SiteConfig.EnableWatchRoom === undefined) {
+    adminConfig.SiteConfig.EnableWatchRoom = getDefaultWatchRoomEnabled();
   }
   // 确保弹幕配置存在
   if (adminConfig.SiteConfig.DanmakuSourceType === undefined) {

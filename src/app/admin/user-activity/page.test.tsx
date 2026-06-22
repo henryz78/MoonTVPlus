@@ -31,10 +31,11 @@ describe('UserActivityPage', () => {
               lastActiveAt: THREE_HOURS_AGO,
               playRecordCount: 1,
               currentReward: {
-                level: 2,
-                title: '本周影迷',
-                minSeconds: 10800,
+                level: 1,
+                title: '本周观影者',
+                minSeconds: 3600,
               },
+              currentRankTitle: '周榜季军',
             },
             records: [
               {
@@ -65,10 +66,11 @@ describe('UserActivityPage', () => {
               isOnline: false,
               playRecordCount: 1,
               currentReward: {
-                level: 2,
-                title: '本周影迷',
-                minSeconds: 10800,
+                level: 1,
+                title: '本周观影者',
+                minSeconds: 3600,
               },
+              currentRankTitle: '周榜季军',
               latestPlayRecord: {
                 title: '沙丘',
                 episode: 1,
@@ -77,8 +79,19 @@ describe('UserActivityPage', () => {
                 saveTime: 1_700_000_000_000,
               },
             },
+            {
+              username: 'bob',
+              role: 'user',
+              banned: false,
+              lastActiveAt: null,
+              isOnline: false,
+              playRecordCount: 0,
+              currentReward: null,
+              currentRankTitle: null,
+              latestPlayRecord: null,
+            },
           ],
-          total: 1,
+          total: 2,
           page: 1,
           limit: 20,
           totalPages: 1,
@@ -96,11 +109,13 @@ describe('UserActivityPage', () => {
 
     expect(await screen.findByText('用户动态')).toBeInTheDocument();
     expect(await screen.findByText('alice')).toBeInTheDocument();
+    expect(screen.getByTitle('普通头像')).toHaveTextContent('B');
     expect(screen.getByText('3 小时前在线')).toBeInTheDocument();
-    expect(screen.getByText('本周影迷')).toBeInTheDocument();
+    expect(screen.getByText('本周观影者')).toBeInTheDocument();
+    expect(screen.getByText('周榜季军')).toBeInTheDocument();
     expect(screen.getByText('沙丘 · 第 1 集 · 50%')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: '查看详情' }));
+    fireEvent.click(screen.getAllByRole('button', { name: '查看详情' })[0]);
 
     await waitFor(() => {
       expect(window.fetch).toHaveBeenCalledWith(
@@ -113,5 +128,7 @@ describe('UserActivityPage', () => {
     ).toBeInTheDocument();
     expect(await screen.findByText('source · 第 1 / 2 集')).toBeInTheDocument();
     expect(screen.getByText(/进度 50%/)).toBeInTheDocument();
+    expect(screen.getAllByText('本周观影者')).toHaveLength(2);
+    expect(screen.getAllByText('周榜季军')).toHaveLength(2);
   });
 });

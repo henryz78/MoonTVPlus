@@ -179,6 +179,7 @@ describe('admin user activity helpers', () => {
       title: '本周影迷',
       level: 2,
     });
+    expect(result.users[0].currentRankTitle).toBe('周榜亚军');
     expect(result.total).toBe(2);
   });
 
@@ -375,6 +376,7 @@ describe('admin user activity helpers', () => {
       lastActiveAt: 20,
       playRecordCount: 2,
       currentReward: null,
+      currentRankTitle: null,
     });
   });
 });

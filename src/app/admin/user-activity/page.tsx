@@ -1,6 +1,6 @@
 'use client';
 
-import { Activity, RefreshCw, Search, UserRound, X } from 'lucide-react';
+import { Activity, RefreshCw, Search, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import PageLayout from '@/components/PageLayout';
@@ -26,6 +26,7 @@ interface OverviewRow {
   playRecordCount: number;
   latestPlayRecord: LatestPlayRecordSummary | null;
   currentReward: WatchReward | null;
+  currentRankTitle: string | null;
 }
 
 interface OverviewResponse {
@@ -56,6 +57,7 @@ interface DetailResponse {
     lastActiveAt: number | null;
     playRecordCount: number;
     currentReward: WatchReward | null;
+    currentRankTitle: string | null;
   };
   records: DetailRecord[];
 }
@@ -67,6 +69,16 @@ const roleText: Record<Role, string> = {
   admin: '管理员',
   user: '用户',
 };
+
+function rankTitleClass(rankTitle: string) {
+  if (rankTitle === '周榜冠军') {
+    return 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200';
+  }
+  if (rankTitle === '周榜亚军') {
+    return 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-200';
+  }
+  return 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200';
+}
 
 function formatDateTime(timestamp: number) {
   return new Date(timestamp)
@@ -258,26 +270,33 @@ export default function UserActivityPage() {
                   >
                     <div className='min-w-0'>
                       <div className='flex items-center gap-2 font-medium text-gray-900 dark:text-gray-100'>
-                        {user.currentReward ? (
-                          <RewardAvatarFrame
-                            label={user.username}
-                            reward={user.currentReward}
-                            size='compact'
-                          />
-                        ) : (
-                          <UserRound className='h-4 w-4 flex-none text-gray-400' />
-                        )}
+                        <RewardAvatarFrame
+                          label={user.username}
+                          reward={user.currentReward}
+                          size='compact'
+                        />
                         <span className='truncate'>{user.username}</span>
                       </div>
                       <div className='mt-1 text-xs text-gray-500'>
                         {roleText[user.role]}
                         {user.banned ? ' · 已封禁' : ''}
                       </div>
-                      {user.currentReward && (
-                        <div className='mt-1 inline-flex max-w-full rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:bg-amber-950/30 dark:text-amber-200'>
-                          <span className='truncate'>
-                            {user.currentReward.title}
-                          </span>
+                      {(user.currentRankTitle || user.currentReward) && (
+                        <div className='mt-1 flex min-w-0 flex-wrap gap-1'>
+                          {user.currentRankTitle && (
+                            <span
+                              className={`max-w-full truncate rounded-full px-2 py-0.5 text-[11px] font-medium ${rankTitleClass(
+                                user.currentRankTitle
+                              )}`}
+                            >
+                              {user.currentRankTitle}
+                            </span>
+                          )}
+                          {user.currentReward && (
+                            <span className='max-w-full truncate rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-200'>
+                              {user.currentReward.title}
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>
@@ -347,20 +366,32 @@ export default function UserActivityPage() {
               <div className='flex items-start justify-between gap-4 border-b border-gray-200 p-4 dark:border-gray-800'>
                 <div>
                   <div className='flex items-center gap-2'>
-                    {detailUser?.currentReward && (
-                      <RewardAvatarFrame
-                        label={selectedUsername}
-                        reward={detailUser.currentReward}
-                        size='compact'
-                      />
-                    )}
+                    <RewardAvatarFrame
+                      label={selectedUsername}
+                      reward={detailUser?.currentReward || null}
+                      size='normal'
+                    />
                     <h2 className='text-base font-semibold text-gray-900 dark:text-gray-100'>
                       {selectedUsername} 的观看记录
                     </h2>
                   </div>
-                  {detailUser?.currentReward && (
-                    <div className='mt-2 inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-950/30 dark:text-amber-200'>
-                      {detailUser.currentReward.title}
+                  {(detailUser?.currentRankTitle ||
+                    detailUser?.currentReward) && (
+                    <div className='mt-2 flex flex-wrap gap-1'>
+                      {detailUser.currentRankTitle && (
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${rankTitleClass(
+                            detailUser.currentRankTitle
+                          )}`}
+                        >
+                          {detailUser.currentRankTitle}
+                        </span>
+                      )}
+                      {detailUser.currentReward && (
+                        <span className='rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-200'>
+                          {detailUser.currentReward.title}
+                        </span>
+                      )}
                     </div>
                   )}
                   {detailUser && (

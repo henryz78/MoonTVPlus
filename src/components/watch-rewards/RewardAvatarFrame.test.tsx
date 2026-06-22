@@ -3,7 +3,34 @@ import { render, screen } from '@testing-library/react';
 import { RewardAvatarFrame } from './RewardAvatarFrame';
 
 describe('RewardAvatarFrame', () => {
-  it('renders the avatar label with a level class and title', () => {
+  it.each([
+    [1, '本周观影者', ['reward-frame-light-dot']],
+    [2, '本周影迷', ['reward-frame-segments', 'reward-frame-inner-line']],
+    [3, '本周追剧达人', ['reward-frame-orbit', 'reward-frame-star']],
+    [4, '本周放映王', ['reward-frame-halo', 'reward-frame-crown']],
+  ] as const)(
+    'renders the complete level %s frame decoration',
+    (level, title, decorations) => {
+      render(
+        <RewardAvatarFrame
+          label='H'
+          reward={{ level, title, minSeconds: level * 3600 }}
+          size='compact'
+        />
+      );
+
+      expect(screen.getByText('H')).toBeInTheDocument();
+      expect(screen.getByTitle(title)).toHaveClass(
+        `reward-frame-level-${level}`,
+        'reward-frame-compact'
+      );
+      decorations.forEach((decoration) => {
+        expect(screen.getByTestId(decoration)).toBeInTheDocument();
+      });
+    }
+  );
+
+  it('keeps the compact gold frame slightly thinner', () => {
     render(
       <RewardAvatarFrame
         label='H'
@@ -12,11 +39,6 @@ describe('RewardAvatarFrame', () => {
       />
     );
 
-    expect(screen.getByText('H')).toBeInTheDocument();
-    expect(screen.getByTitle('本周放映王')).toHaveClass(
-      'reward-frame-level-4',
-      'reward-frame-compact'
-    );
     expect(screen.getByText('H')).toHaveClass('h-[31px]', 'w-[31px]');
   });
 

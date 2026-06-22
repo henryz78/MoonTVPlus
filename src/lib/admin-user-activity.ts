@@ -32,6 +32,7 @@ export interface UserActivityOverviewRow {
   playRecordCount: number;
   latestPlayRecord: LatestPlayRecordSummary | null;
   currentReward: WatchReward | null;
+  currentRankTitle: string | null;
 }
 
 export interface UserActivityOverviewResult {
@@ -50,6 +51,7 @@ export interface UserActivityDetailResult {
     lastActiveAt: number | null;
     playRecordCount: number;
     currentReward: WatchReward | null;
+    currentRankTitle: string | null;
   };
   records: Array<PlayRecord & { key: string }>;
 }
@@ -208,6 +210,7 @@ async function buildOverviewRow(
     playRecordCount: Object.keys(records).length,
     latestPlayRecord: latest ? summarizeLatestPlayRecord(latest.record) : null,
     currentReward: currentReward?.reward || null,
+    currentRankTitle: currentReward?.rankTitle || null,
   };
 }
 
@@ -359,6 +362,7 @@ export async function getUserActivityDetail(input: {
       lastActiveAt: effectiveLastActiveAt,
       playRecordCount: sortedRecords.length,
       currentReward: currentReward?.reward || null,
+      currentRankTitle: currentReward?.rankTitle || null,
     },
     records: sortedRecords,
   };

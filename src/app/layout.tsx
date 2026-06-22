@@ -12,6 +12,7 @@ import { getUserFeatureAccess } from '@/lib/permissions';
 import { listEnabledSourceScripts } from '@/lib/source-script';
 
 import ActivityPing from '@/components/ActivityPing';
+import { WeeklyRewardNotification } from '@/components/watch-rewards/WeeklyRewardNotification';
 
 import { StartupCacheCleanup } from '../components/DanmakuCacheCleanup';
 import { DownloadBubble } from '../components/DownloadBubble';
@@ -384,6 +385,7 @@ export default async function RootLayout({
               <DownloadProvider>
                 <StartupCacheCleanup />
                 {children}
+                <WeeklyRewardNotification />
                 <GlobalErrorIndicator />
                 <ChatFloatingWindow />
                 <DownloadBubble />

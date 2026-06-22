@@ -4,6 +4,8 @@ import { Activity, RefreshCw, Search, UserRound, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import PageLayout from '@/components/PageLayout';
+import { RewardAvatarFrame } from '@/components/watch-rewards/RewardAvatarFrame';
+import type { WatchReward } from '@/lib/watch-rewards';
 
 type Role = 'owner' | 'admin' | 'user';
 
@@ -23,6 +25,7 @@ interface OverviewRow {
   isOnline: boolean;
   playRecordCount: number;
   latestPlayRecord: LatestPlayRecordSummary | null;
+  currentReward: WatchReward | null;
 }
 
 interface OverviewResponse {
@@ -52,6 +55,7 @@ interface DetailResponse {
     banned: boolean;
     lastActiveAt: number | null;
     playRecordCount: number;
+    currentReward: WatchReward | null;
   };
   records: DetailRecord[];
 }
@@ -254,13 +258,28 @@ export default function UserActivityPage() {
                   >
                     <div className='min-w-0'>
                       <div className='flex items-center gap-2 font-medium text-gray-900 dark:text-gray-100'>
-                        <UserRound className='h-4 w-4 flex-none text-gray-400' />
+                        {user.currentReward ? (
+                          <RewardAvatarFrame
+                            label={user.username}
+                            reward={user.currentReward}
+                            size='compact'
+                          />
+                        ) : (
+                          <UserRound className='h-4 w-4 flex-none text-gray-400' />
+                        )}
                         <span className='truncate'>{user.username}</span>
                       </div>
                       <div className='mt-1 text-xs text-gray-500'>
                         {roleText[user.role]}
                         {user.banned ? ' · 已封禁' : ''}
                       </div>
+                      {user.currentReward && (
+                        <div className='mt-1 inline-flex max-w-full rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:bg-amber-950/30 dark:text-amber-200'>
+                          <span className='truncate'>
+                            {user.currentReward.title}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <span
                       className={
@@ -327,9 +346,23 @@ export default function UserActivityPage() {
             >
               <div className='flex items-start justify-between gap-4 border-b border-gray-200 p-4 dark:border-gray-800'>
                 <div>
-                  <h2 className='text-base font-semibold text-gray-900 dark:text-gray-100'>
-                    {selectedUsername} 的观看记录
-                  </h2>
+                  <div className='flex items-center gap-2'>
+                    {detailUser?.currentReward && (
+                      <RewardAvatarFrame
+                        label={selectedUsername}
+                        reward={detailUser.currentReward}
+                        size='compact'
+                      />
+                    )}
+                    <h2 className='text-base font-semibold text-gray-900 dark:text-gray-100'>
+                      {selectedUsername} 的观看记录
+                    </h2>
+                  </div>
+                  {detailUser?.currentReward && (
+                    <div className='mt-2 inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-950/30 dark:text-amber-200'>
+                      {detailUser.currentReward.title}
+                    </div>
+                  )}
                   {detailUser && (
                     <p className='mt-1 text-xs text-gray-500'>
                       最近活跃：

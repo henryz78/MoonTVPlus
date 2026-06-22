@@ -30,6 +30,11 @@ describe('UserActivityPage', () => {
               banned: false,
               lastActiveAt: THREE_HOURS_AGO,
               playRecordCount: 1,
+              currentReward: {
+                level: 2,
+                title: '本周影迷',
+                minSeconds: 10800,
+              },
             },
             records: [
               {
@@ -59,6 +64,11 @@ describe('UserActivityPage', () => {
               lastActiveAt: THREE_HOURS_AGO,
               isOnline: false,
               playRecordCount: 1,
+              currentReward: {
+                level: 2,
+                title: '本周影迷',
+                minSeconds: 10800,
+              },
               latestPlayRecord: {
                 title: '沙丘',
                 episode: 1,
@@ -87,6 +97,7 @@ describe('UserActivityPage', () => {
     expect(await screen.findByText('用户动态')).toBeInTheDocument();
     expect(await screen.findByText('alice')).toBeInTheDocument();
     expect(screen.getByText('3 小时前在线')).toBeInTheDocument();
+    expect(screen.getByText('本周影迷')).toBeInTheDocument();
     expect(screen.getByText('沙丘 · 第 1 集 · 50%')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '查看详情' }));

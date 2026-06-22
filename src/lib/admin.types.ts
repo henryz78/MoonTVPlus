@@ -9,6 +9,7 @@ export interface AdminConfig {
     SiteName: string;
     Announcement: string;
     AnnouncementForceRead?: boolean; // 首页公告弹窗确认按钮延迟 3 秒
+    LeaderboardOwnerParticipates?: boolean; // 站长是否参与观影排行榜
     SearchDownstreamMaxPage: number;
     SiteInterfaceCacheTime: number;
     DoubanProxyType: string;

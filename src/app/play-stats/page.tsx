@@ -14,8 +14,6 @@ import { useCallback, useEffect, useState } from 'react';
 
 import PageLayout from '@/components/PageLayout';
 
-type Role = 'owner' | 'admin' | 'user';
-
 interface PlayStatsRecordSummary {
   username: string;
   title: string;
@@ -33,18 +31,7 @@ interface PlayStatsTitleSummary {
   latestSaveTime: number;
 }
 
-interface PlayStatsUserSummary {
-  username: string;
-  role: Role;
-  playRecordCount: number;
-  watchSeconds: number;
-  lastActiveAt: number | null;
-  isOnline: boolean;
-  latestPlayRecord: PlayStatsRecordSummary | null;
-}
-
 interface PlayStatsResponse {
-  viewerRole: Role;
   totalUsers: number;
   onlineUsers: number;
   totalPlayRecords: number;
@@ -57,15 +44,8 @@ interface PlayStatsResponse {
   last7DaysWatchSeconds: number;
   lastWatchAt: number | null;
   topTitles: PlayStatsTitleSummary[];
-  userRanking: PlayStatsUserSummary[];
   recentRecords: PlayStatsRecordSummary[];
 }
-
-const roleText: Record<Role, string> = {
-  owner: '站长',
-  admin: '管理员',
-  user: '用户',
-};
 
 function formatDateTime(timestamp: number | null) {
   if (!timestamp) return '暂无';
@@ -79,21 +59,6 @@ function formatDateTime(timestamp: number | null) {
       hour12: false,
     })
     .replace(/\//g, '-');
-}
-
-function formatActivity(lastActiveAt: number | null, isOnline?: boolean) {
-  if (!lastActiveAt) return '从未活跃';
-  const diff = Math.max(0, Date.now() - lastActiveAt);
-  if (isOnline || diff <= 2 * 60 * 1000) return '在线';
-  const minutes = Math.max(1, Math.floor(diff / 60_000));
-  if (minutes < 60) return `${minutes} 分钟前在线`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} 小时前在线`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days} 天前在线`;
-  const months = Math.floor(days / 30);
-  if (months < 12) return `${months} 个月前在线`;
-  return `${Math.max(1, Math.floor(days / 365))} 年前在线`;
 }
 
 function formatWatchDuration(seconds: number | null | undefined) {
@@ -244,7 +209,7 @@ export default function PlayStatsPage() {
               />
             </div>
 
-            <div className='grid min-w-0 gap-4 lg:grid-cols-2'>
+            <div className='grid min-w-0 gap-4'>
               <section className='min-w-0 overflow-hidden rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900'>
                 <h2 className='mb-3 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100'>
                   <Trophy className='h-4 w-4 text-amber-500' />
@@ -275,58 +240,6 @@ export default function PlayStatsPage() {
                         <span className='mt-3 inline-flex w-fit flex-none self-start rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-200 sm:mt-0 sm:self-auto'>
                           {item.count} 条
                         </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </section>
-
-              <section className='min-w-0 overflow-hidden rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900'>
-                <h2 className='mb-3 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100'>
-                  <Users className='h-4 w-4 text-blue-500' />
-                  {stats.viewerRole === 'user' ? '我的概况' : '用户排行'}
-                </h2>
-                {stats.userRanking.length === 0 ? (
-                  <div className='py-8 text-center text-sm text-gray-500'>
-                    暂无用户数据
-                  </div>
-                ) : (
-                  <div className='min-w-0 space-y-3'>
-                    {stats.userRanking.map((item) => (
-                      <div
-                        key={item.username}
-                        className='min-w-0 overflow-hidden rounded-lg border border-gray-100 px-3 py-2 text-sm dark:border-gray-800'
-                      >
-                        <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
-                          <div className='min-w-0'>
-                            <div className='truncate font-medium text-gray-900 dark:text-gray-100'>
-                              {item.username}
-                              <span className='ml-2 text-xs font-normal text-gray-500'>
-                                {roleText[item.role]}
-                              </span>
-                            </div>
-                            <div
-                              className={
-                                item.isOnline
-                                  ? 'mt-1 text-xs text-green-600 dark:text-green-400'
-                                  : 'mt-1 text-xs text-gray-500'
-                              }
-                            >
-                              {formatActivity(item.lastActiveAt, item.isOnline)}
-                            </div>
-                          </div>
-                          <span className='flex-none self-start text-xs text-gray-500 sm:self-auto'>
-                            {item.playRecordCount} 条 ·{' '}
-                            {formatWatchDuration(item.watchSeconds)}
-                          </span>
-                        </div>
-                        {item.latestPlayRecord && (
-                          <div className='mt-2 min-w-0 break-words text-xs text-gray-500'>
-                            最近：{item.latestPlayRecord.title} · 第{' '}
-                            {item.latestPlayRecord.episode} 集 ·{' '}
-                            {item.latestPlayRecord.progressPercent}%
-                          </div>
-                        )}
                       </div>
                     ))}
                   </div>

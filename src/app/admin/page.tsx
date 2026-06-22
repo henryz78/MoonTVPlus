@@ -357,6 +357,7 @@ interface SiteConfig {
   SiteName: string;
   Announcement: string;
   AnnouncementForceRead?: boolean;
+  LeaderboardOwnerParticipates?: boolean;
   SearchDownstreamMaxPage: number;
   SiteInterfaceCacheTime: number;
   DoubanProxyType: string;
@@ -10136,6 +10137,7 @@ const SiteConfigComponent = ({
     SiteName: '',
     Announcement: '',
     AnnouncementForceRead: false,
+    LeaderboardOwnerParticipates: false,
     SearchDownstreamMaxPage: 1,
     SiteInterfaceCacheTime: 7200,
     DoubanProxyType: 'cmliussss-cdn-tencent',
@@ -10288,8 +10290,9 @@ const SiteConfigComponent = ({
         MagnetAcgripReverseProxy:
           config.SiteConfig.MagnetAcgripReverseProxy || '',
         EnableComments: config.SiteConfig.EnableComments || false,
-        AnnouncementForceRead:
-          config.SiteConfig.AnnouncementForceRead || false,
+        AnnouncementForceRead: config.SiteConfig.AnnouncementForceRead || false,
+        LeaderboardOwnerParticipates:
+          config.SiteConfig.LeaderboardOwnerParticipates || false,
       });
     }
   }, [config]);
@@ -10457,6 +10460,30 @@ const SiteConfigComponent = ({
               setSiteSettings((prev) => ({
                 ...prev,
                 AnnouncementForceRead: e.target.checked,
+              }))
+            }
+            className='h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-800'
+          />
+        </label>
+      </div>
+
+      <div>
+        <label className='flex items-center justify-between gap-4 rounded-lg border border-gray-200 bg-gray-50/70 px-3 py-3 dark:border-gray-700 dark:bg-gray-800/50'>
+          <span>
+            <span className='block text-sm font-medium text-gray-700 dark:text-gray-300'>
+              站长参与排行榜
+            </span>
+            <span className='mt-1 block text-xs text-gray-500 dark:text-gray-400'>
+              开启后站长账号会进入周榜和全部榜统计
+            </span>
+          </span>
+          <input
+            type='checkbox'
+            checked={siteSettings.LeaderboardOwnerParticipates || false}
+            onChange={(e) =>
+              setSiteSettings((prev) => ({
+                ...prev,
+                LeaderboardOwnerParticipates: e.target.checked,
               }))
             }
             className='h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-800'
@@ -17407,10 +17434,7 @@ function AdminPageClient() {
           <CollapsibleTab
             title='观影室配置'
             icon={
-              <Monitor
-                size={20}
-                className='text-gray-600 dark:text-gray-400'
-              />
+              <Monitor size={20} className='text-gray-600 dark:text-gray-400' />
             }
             isExpanded={expandedTabs.watchRoomConfig}
             onToggle={() => toggleTab('watchRoomConfig')}

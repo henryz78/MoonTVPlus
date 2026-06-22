@@ -32,6 +32,7 @@ import {
   Smartphone,
   Star,
   Tablet,
+  Trophy,
   User,
   UserPlus,
   X,
@@ -51,6 +52,7 @@ import {
 import { clearBangumiImageFallbackCache } from '@/lib/utils';
 import { CURRENT_VERSION } from '@/lib/version';
 import { UpdateStatus } from '@/lib/version_check';
+import type { WatchReward } from '@/lib/watch-rewards';
 
 import { DeviceManagementPanel } from './DeviceManagementPanel';
 import { DownloadManagementPanel } from './DownloadManagementPanel';
@@ -62,10 +64,20 @@ import { PersonalCenterPanel } from './PersonalCenterPanel';
 import TVRemotePanel from './tv/TVRemotePanel';
 import { useVersionCheck } from './VersionCheckProvider';
 import { VersionPanel } from './VersionPanel';
+import { RewardAvatarFrame } from './watch-rewards/RewardAvatarFrame';
 
 interface AuthInfo {
   username?: string;
   role?: 'owner' | 'admin' | 'user';
+}
+
+interface CurrentWatchReward {
+  reward: WatchReward;
+  rank: number;
+  rankTitle: string | null;
+  weekLabel: string;
+  expiresAt: number;
+  watchSeconds: number;
 }
 
 export const UserMenu: React.FC = () => {
@@ -94,6 +106,8 @@ export const UserMenu: React.FC = () => {
     useState<string>('localstorage');
   const [mounted, setMounted] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [currentWatchReward, setCurrentWatchReward] =
+    useState<CurrentWatchReward | null>(null);
 
   // 订阅相关状态
   const [subscribeEnabled, setSubscribeEnabled] = useState(false);
@@ -603,6 +617,33 @@ export const UserMenu: React.FC = () => {
       setDisplayStorageType(displayType);
     }
   }, []);
+
+  useEffect(() => {
+    if (storageType === 'localstorage' || !authInfo?.username) {
+      setCurrentWatchReward(null);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch('/api/watch-rewards/current', {
+          cache: 'no-store',
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!cancelled) {
+          setCurrentWatchReward(data.reward || null);
+        }
+      } catch (error) {
+        console.error('加载当前观影奖励失败:', error);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authInfo?.username, storageType]);
 
   // 从 localStorage 读取设置
   useEffect(() => {
@@ -1368,6 +1409,11 @@ export const UserMenu: React.FC = () => {
   const handlePlayStats = () => {
     setIsOpen(false);
     router.push('/play-stats');
+  };
+
+  const handleWatchLeaderboard = () => {
+    setIsOpen(false);
+    router.push('/watch-leaderboard');
   };
 
   const handleRegistrationRequests = () => {
@@ -2247,8 +2293,12 @@ export const UserMenu: React.FC = () => {
               onClick={handleOpenProfileCenter}
               className='flex items-center gap-3 rounded-xl px-2 py-1 text-left hover:bg-white/70 dark:hover:bg-gray-700/40 transition-colors'
             >
-              <div className='relative flex h-11 w-11 items-center justify-center rounded-full bg-blue-500 text-lg font-semibold text-white shadow-sm'>
-                <span>{avatarText}</span>
+              <div className='relative flex h-11 w-11 items-center justify-center'>
+                <RewardAvatarFrame
+                  label={avatarText}
+                  reward={currentWatchReward?.reward || null}
+                  size='normal'
+                />
                 {shouldShowRoleBadge && (
                   <span
                     className={`absolute left-1/2 top-[calc(100%-6px)] z-10 -translate-x-1/2 inline-flex min-w-[26px] items-center justify-center whitespace-nowrap rounded-full px-1.5 py-[2px] text-[8px] leading-none font-medium shadow-sm ${roleBadgeClassName}`}
@@ -2261,6 +2311,11 @@ export const UserMenu: React.FC = () => {
                 <span className='block max-w-[84px] truncate text-sm font-semibold text-gray-900 dark:text-gray-100 leading-none'>
                   {currentUsername}
                 </span>
+                {currentWatchReward && (
+                  <span className='mt-1 block max-w-[92px] truncate text-[10px] font-medium text-amber-600 dark:text-amber-300'>
+                    {currentWatchReward.reward.title}
+                  </span>
+                )}
               </div>
             </button>
 
@@ -2325,6 +2380,16 @@ export const UserMenu: React.FC = () => {
             >
               <BarChart3 className='w-4 h-4 text-gray-500 dark:text-gray-400' />
               <span className='font-medium'>播放统计</span>
+            </button>
+          )}
+
+          {storageType !== 'localstorage' && (
+            <button
+              onClick={handleWatchLeaderboard}
+              className='w-full px-3 py-2 text-left flex items-center gap-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm'
+            >
+              <Trophy className='w-4 h-4 text-gray-500 dark:text-gray-400' />
+              <span className='font-medium'>排行榜</span>
             </button>
           )}
 

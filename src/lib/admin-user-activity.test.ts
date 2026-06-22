@@ -9,6 +9,7 @@ import {
 } from './admin-user-activity';
 import { db } from './db';
 import { getUserPresence } from './user-presence';
+import { getCurrentWatchReward } from './watch-rewards';
 
 jest.mock('./db', () => ({
   db: {
@@ -24,6 +25,10 @@ jest.mock('@/lib/refresh-token', () => ({
 
 jest.mock('./user-presence', () => ({
   getUserPresence: jest.fn(),
+}));
+
+jest.mock('./watch-rewards', () => ({
+  getCurrentWatchReward: jest.fn(),
 }));
 
 const user = (username: string, role: 'owner' | 'admin' | 'user') => ({
@@ -42,6 +47,7 @@ describe('admin user activity helpers', () => {
     process.env.USERNAME = 'owner';
     process.env.NEXT_PUBLIC_STORAGE_TYPE = 'redis';
     (getUserPresence as jest.Mock).mockResolvedValue(null);
+    (getCurrentWatchReward as jest.Mock).mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -141,6 +147,18 @@ describe('admin user activity helpers', () => {
             },
           ]
     );
+    (getCurrentWatchReward as jest.Mock).mockImplementation(async (username) =>
+      username === 'bob'
+        ? {
+            reward: { level: 2, title: '本周影迷', minSeconds: 10800 },
+            rank: 2,
+            rankTitle: '周榜亚军',
+            weekLabel: '2026-06-15 - 2026-06-21',
+            expiresAt: 1,
+            watchSeconds: 10800,
+          }
+        : null
+    );
 
     const result = await getUserActivityOverview({
       operatorUsername: 'owner',
@@ -156,6 +174,10 @@ describe('admin user activity helpers', () => {
       sourceName: 'source',
       progressPercent: 20,
       saveTime: 20,
+    });
+    expect(result.users[0].currentReward).toMatchObject({
+      title: '本周影迷',
+      level: 2,
     });
     expect(result.total).toBe(2);
   });
@@ -352,6 +374,7 @@ describe('admin user activity helpers', () => {
       banned: false,
       lastActiveAt: 20,
       playRecordCount: 2,
+      currentReward: null,
     });
   });
 });

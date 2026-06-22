@@ -78,6 +78,29 @@ describe('configSelfCheck AI defaults', () => {
     expect(config.SiteConfig.AnnouncementForceRead).toBe(false);
   });
 
+  it('fills the owner leaderboard participation default when missing', () => {
+    const config = configSelfCheck({
+      ConfigFile: '{}',
+      ConfigSubscribtion: {
+        URL: '',
+        AutoUpdate: false,
+        LastCheck: '',
+      },
+      SiteConfig: {
+        SiteName: 'Test',
+        Announcement: '公告内容',
+        SearchDownstreamMaxPage: 5,
+        SiteInterfaceCacheTime: 7200,
+      },
+      UserConfig: { Users: [] },
+      SourceConfig: [],
+      CustomCategories: [],
+      LiveConfig: [],
+    } as unknown as AdminConfig);
+
+    expect(config.SiteConfig.LeaderboardOwnerParticipates).toBe(false);
+  });
+
   it('fills watch room config from legacy environment variables when missing', () => {
     const originalWatchRoomEnabled = process.env.WATCH_ROOM_ENABLED;
     const originalWatchRoomServerType = process.env.WATCH_ROOM_SERVER_TYPE;

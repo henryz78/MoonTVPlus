@@ -2,6 +2,7 @@ import { getConfig } from '@/lib/config';
 import { getUserDevices } from '@/lib/refresh-token';
 import { getUserPresence } from '@/lib/user-presence';
 import { PlayRecord } from '@/lib/types';
+import { getCurrentWatchReward, WatchReward } from '@/lib/watch-rewards';
 
 import { db } from './db';
 
@@ -30,6 +31,7 @@ export interface UserActivityOverviewRow {
   isOnline: boolean;
   playRecordCount: number;
   latestPlayRecord: LatestPlayRecordSummary | null;
+  currentReward: WatchReward | null;
 }
 
 export interface UserActivityOverviewResult {
@@ -47,6 +49,7 @@ export interface UserActivityDetailResult {
     banned: boolean;
     lastActiveAt: number | null;
     playRecordCount: number;
+    currentReward: WatchReward | null;
   };
   records: Array<PlayRecord & { key: string }>;
 }
@@ -186,6 +189,7 @@ async function buildOverviewRow(
     db.getAllPlayRecords(user.username),
     getLastActiveAt(user.username),
   ]);
+  const currentReward = await getCurrentWatchReward(user.username);
   const latest = latestRecordFrom(records);
   const effectiveLastActiveAt = newestActivityTime(
     lastActiveAt,
@@ -203,6 +207,7 @@ async function buildOverviewRow(
     ),
     playRecordCount: Object.keys(records).length,
     latestPlayRecord: latest ? summarizeLatestPlayRecord(latest.record) : null,
+    currentReward: currentReward?.reward || null,
   };
 }
 
@@ -337,6 +342,7 @@ export async function getUserActivityDetail(input: {
     db.getAllPlayRecords(target.username),
     getLastActiveAt(target.username),
   ]);
+  const currentReward = await getCurrentWatchReward(target.username);
   const sortedRecords = Object.entries(records)
     .map(([key, record]) => ({ ...record, key }))
     .sort((a, b) => b.save_time - a.save_time);
@@ -352,6 +358,7 @@ export async function getUserActivityDetail(input: {
       banned: target.banned,
       lastActiveAt: effectiveLastActiveAt,
       playRecordCount: sortedRecords.length,
+      currentReward: currentReward?.reward || null,
     },
     records: sortedRecords,
   };

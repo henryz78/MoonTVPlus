@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
       SiteName,
       Announcement,
       AnnouncementForceRead,
+      LeaderboardOwnerParticipates,
       SearchDownstreamMaxPage,
       SiteInterfaceCacheTime,
       DoubanProxyType,
@@ -91,6 +92,7 @@ export async function POST(request: NextRequest) {
       SiteName: string;
       Announcement: string;
       AnnouncementForceRead?: boolean;
+      LeaderboardOwnerParticipates?: boolean;
       SearchDownstreamMaxPage: number;
       SiteInterfaceCacheTime: number;
       DoubanProxyType: string;
@@ -154,6 +156,8 @@ export async function POST(request: NextRequest) {
       typeof Announcement !== 'string' ||
       (AnnouncementForceRead !== undefined &&
         typeof AnnouncementForceRead !== 'boolean') ||
+      (LeaderboardOwnerParticipates !== undefined &&
+        typeof LeaderboardOwnerParticipates !== 'boolean') ||
       typeof SearchDownstreamMaxPage !== 'number' ||
       typeof SiteInterfaceCacheTime !== 'number' ||
       typeof DoubanProxyType !== 'string' ||
@@ -262,6 +266,7 @@ export async function POST(request: NextRequest) {
       SiteName,
       Announcement,
       AnnouncementForceRead: AnnouncementForceRead || false,
+      LeaderboardOwnerParticipates: LeaderboardOwnerParticipates || false,
       SearchDownstreamMaxPage,
       SiteInterfaceCacheTime,
       DoubanProxyType,

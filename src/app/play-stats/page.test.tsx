@@ -92,8 +92,8 @@ describe('PlayStatsPage', () => {
     expect(screen.getByText('最近观看最多')).toBeInTheDocument();
     expect(screen.getAllByText(/识骨寻踪第一季/).length).toBeGreaterThan(0);
     expect(screen.getByText('已看 1 小时')).toBeInTheDocument();
-    expect(screen.getByText('用户排行')).toBeInTheDocument();
-    expect(screen.getByText('6 条 · 1 小时 30 分钟')).toBeInTheDocument();
+    expect(screen.queryByText('用户排行')).not.toBeInTheDocument();
+    expect(screen.queryByText('6 条 · 1 小时 30 分钟')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '刷新' }));
 
@@ -102,16 +102,12 @@ describe('PlayStatsPage', () => {
     });
   });
 
-  it('keeps ranking sections shrinkable on narrow screens', async () => {
+  it('keeps title sections shrinkable on narrow screens', async () => {
     render(<PlayStatsPage />);
 
     expect(await screen.findByText('最近观看最多')).toBeInTheDocument();
 
     expect(screen.getByText('最近观看最多').closest('section')).toHaveClass(
-      'min-w-0',
-      'overflow-hidden'
-    );
-    expect(screen.getByText('用户排行').closest('section')).toHaveClass(
       'min-w-0',
       'overflow-hidden'
     );

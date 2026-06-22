@@ -28,14 +28,18 @@ export interface NavigationItem {
   href: string;
 }
 
-export function buildNavigationItems({
-  runtimeConfig,
-  watchRoomEnabled = false,
-}: {
+type BuildNavigationOptions = {
   runtimeConfig?: NavigationRuntimeConfig;
   watchRoomEnabled?: boolean;
-}): NavigationItem[] {
-  const items: NavigationItem[] = [
+};
+
+export interface NavigationGroups {
+  primaryItems: NavigationItem[];
+  overflowItems: NavigationItem[];
+}
+
+export function buildPrimaryNavigationItems(): NavigationItem[] {
+  return [
     { icon: Home, label: '首页', href: '/' },
     { icon: Search, label: '搜索', href: '/search' },
     { icon: Film, label: '电影', href: '/douban?type=movie' },
@@ -43,8 +47,15 @@ export function buildNavigationItems({
     { icon: Cat, label: '动漫', href: '/douban?type=anime' },
     { icon: Clover, label: '综艺', href: '/douban?type=show' },
   ];
+}
 
-  if (runtimeConfig?.LIVE_ENABLED !== false) {
+export function buildOverflowNavigationItems({
+  runtimeConfig,
+  watchRoomEnabled = false,
+}: BuildNavigationOptions): NavigationItem[] {
+  const items: NavigationItem[] = [];
+
+  if (runtimeConfig?.LIVE_ENABLED) {
     items.push({
       icon: TvMinimalPlay,
       label: '电视直播',
@@ -93,6 +104,27 @@ export function buildNavigationItems({
   }
 
   return items;
+}
+
+export function buildNavigationGroups(
+  options: BuildNavigationOptions
+): NavigationGroups {
+  return {
+    primaryItems: buildPrimaryNavigationItems(),
+    overflowItems: buildOverflowNavigationItems(options),
+  };
+}
+
+export function buildNavigationItems({
+  runtimeConfig,
+  watchRoomEnabled = false,
+}: BuildNavigationOptions): NavigationItem[] {
+  const { primaryItems, overflowItems } = buildNavigationGroups({
+    runtimeConfig,
+    watchRoomEnabled,
+  });
+
+  return [...primaryItems, ...overflowItems];
 }
 
 export function isNavigationItemActive(activePath: string, itemHref: string) {

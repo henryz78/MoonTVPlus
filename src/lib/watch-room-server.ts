@@ -479,25 +479,23 @@ export class WatchRoomServer {
       // 心跳
       socket.on('heartbeat', () => {
         const roomInfo = this.socketToRoom.get(socket.id);
-        if (roomInfo) {
-          const roomMembers = this.members.get(roomInfo.roomId);
-          const member = roomMembers?.get(roomInfo.userId);
-          if (member) {
-            member.lastHeartbeat = Date.now();
-            roomMembers?.set(roomInfo.userId, member);
-          }
+        if (!roomInfo) return;
 
-          // 如果是房主，更新房间心跳
-          if (roomInfo.isOwner) {
-            const room = this.rooms.get(roomInfo.roomId);
-            if (room) {
-              room.lastOwnerHeartbeat = Date.now();
-              this.rooms.set(roomInfo.roomId, room);
-            }
-          }
+        const roomMembers = this.members.get(roomInfo.roomId);
+        const member = roomMembers?.get(roomInfo.userId);
+        if (member) {
+          member.lastHeartbeat = Date.now();
+          roomMembers?.set(roomInfo.userId, member);
         }
 
-        socket.emit('heartbeat:pong', { timestamp: Date.now() });
+        // 如果是房主，更新房间心跳
+        if (roomInfo.isOwner) {
+          const room = this.rooms.get(roomInfo.roomId);
+          if (room) {
+            room.lastOwnerHeartbeat = Date.now();
+            this.rooms.set(roomInfo.roomId, room);
+          }
+        }
       });
 
       // 断开连接

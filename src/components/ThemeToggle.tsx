@@ -4,12 +4,13 @@
 
 import { Moon, Sun } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import { useTheme } from 'next-themes';
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
+
+import { ThemeContext } from './ThemeProvider';
 
 export function ThemeToggle() {
   const [mounted, setMounted] = useState(false);
-  const { setTheme, resolvedTheme } = useTheme();
+  const { setTheme, resolvedTheme } = useContext(ThemeContext);
   const pathname = usePathname();
 
   const setThemeColor = (theme?: string) => {

@@ -10,6 +10,7 @@ import { parseAuthInfo } from '@/lib/auth';
 import { getConfig } from '@/lib/config';
 import { getUserFeatureAccess } from '@/lib/permissions';
 import { listEnabledSourceScripts } from '@/lib/source-script';
+import { getThemeInitScript } from '@/lib/theme-script';
 
 import ActivityPing from '@/components/ActivityPing';
 import { WeeklyRewardNotification } from '@/components/watch-rewards/WeeklyRewardNotification';
@@ -347,6 +348,10 @@ export default async function RootLayout({
         <meta
           name='viewport'
           content='width=device-width, initial-scale=1.0, viewport-fit=cover'
+        />
+        <script
+          id='theme-init'
+          dangerouslySetInnerHTML={{ __html: getThemeInitScript() }}
         />
         <link rel='apple-touch-icon' href='/icons/icon-192x192.png' />
         {/* 主题CSS */}

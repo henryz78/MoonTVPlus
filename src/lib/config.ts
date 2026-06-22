@@ -8,6 +8,22 @@ import { DEFAULT_AI_SYSTEM_PROMPT } from './ai-defaults';
 const BUILTIN_DANMAKU_API_BASE = 'https://mtvpls-danmu.netlify.app/87654321';
 const DEFAULT_LIVE_REFRESH_INTERVAL_HOURS = 12;
 
+function getDefaultWatchRoomConfig(): NonNullable<
+  AdminConfig['WatchRoomConfig']
+> {
+  return {
+    Enabled:
+      process.env.MOONTV_LITE !== 'true' &&
+      process.env.WATCH_ROOM_ENABLED === 'true',
+    ServerType:
+      process.env.WATCH_ROOM_SERVER_TYPE === 'external'
+        ? 'external'
+        : 'internal',
+    ExternalServerUrl: process.env.WATCH_ROOM_EXTERNAL_SERVER_URL || '',
+    ExternalServerAuth: process.env.WATCH_ROOM_EXTERNAL_SERVER_AUTH || '',
+  };
+}
+
 function normalizeLiveRefreshIntervalHours(
   refreshIntervalHours?: number
 ): number {
@@ -338,6 +354,7 @@ async function getInitConfig(
     UserConfig: {
       Users: [],
     },
+    WatchRoomConfig: getDefaultWatchRoomConfig(),
     SourceConfig: [],
     CustomCategories: [],
     LiveConfig: [],
@@ -545,6 +562,25 @@ export function configSelfCheck(adminConfig: AdminConfig): AdminConfig {
       TurnstileSecretKey: '',
       DefaultUserTags: [],
     };
+  }
+  if (!adminConfig.WatchRoomConfig) {
+    adminConfig.WatchRoomConfig = getDefaultWatchRoomConfig();
+  }
+  const watchRoomConfig = adminConfig.WatchRoomConfig;
+  if (watchRoomConfig.Enabled === undefined) {
+    watchRoomConfig.Enabled = false;
+  }
+  if (
+    watchRoomConfig.ServerType !== 'internal' &&
+    watchRoomConfig.ServerType !== 'external'
+  ) {
+    watchRoomConfig.ServerType = 'internal';
+  }
+  if (watchRoomConfig.ExternalServerUrl === undefined) {
+    watchRoomConfig.ExternalServerUrl = '';
+  }
+  if (watchRoomConfig.ExternalServerAuth === undefined) {
+    watchRoomConfig.ExternalServerAuth = '';
   }
   if (adminConfig.SiteConfig.AnnouncementForceRead === undefined) {
     adminConfig.SiteConfig.AnnouncementForceRead = false;

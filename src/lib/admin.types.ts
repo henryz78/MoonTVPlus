@@ -92,6 +92,12 @@ export interface AdminConfig {
     }[];
   };
   SpecialSourceApis?: string[]; // 特殊源 key 列表，默认对普通入口隐藏
+  WatchRoomConfig?: {
+    Enabled: boolean;
+    ServerType: 'internal' | 'external';
+    ExternalServerUrl?: string;
+    ExternalServerAuth?: string;
+  };
   SourceConfig: {
     key: string;
     name: string;

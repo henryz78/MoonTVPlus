@@ -81,7 +81,7 @@ const FloatingNav = ({ activePath }: FloatingNavProps) => {
     >
       <div ref={navRef} className='pointer-events-auto relative'>
         {showMore && overflowItems.length > 0 && (
-          <div className='absolute bottom-full right-0 mb-2 rounded-2xl border border-white/55 bg-white/90 p-2 shadow-[0_18px_45px_rgba(15,23,42,0.22)] ring-1 ring-gray-900/5 backdrop-blur-xl dark:border-gray-700/60 dark:bg-gray-950/90 dark:shadow-[0_18px_45px_rgba(0,0,0,0.55)] dark:ring-white/10'>
+          <div className='absolute bottom-full right-0 mb-2 rounded-[1.75rem] border border-white/55 bg-white/72 p-2 shadow-[0_18px_55px_rgba(15,23,42,0.22)] ring-1 ring-gray-900/5 backdrop-blur-2xl dark:border-gray-700/60 dark:bg-gray-950/72 dark:shadow-[0_18px_55px_rgba(0,0,0,0.55)] dark:ring-white/10'>
             <ul className='grid grid-cols-3 gap-1'>
               {overflowItems.map((item) => {
                 const active = isNavigationItemActive(currentActive, item.href);

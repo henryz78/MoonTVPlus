@@ -429,10 +429,10 @@ dockge/komodo 等 docker compose UI 也有自动更新功能
 | ENABLE_TVBOX_SUBSCRIBE                   | 是否启用 TVBOX 订阅功能                                      | true/false                  | false                                                        |
 | TVBOX_SUBSCRIBE_TOKEN                    | TVBOX 订阅 API 访问 Token，如启用TVBOX功能必须设置该项       | 任意字符串                  | (空)                                                         |
 | TVBOX_BLOCKED_SOURCES                    | TVBOX 订阅屏蔽源列表（多个源用逗号分隔，匹配视频源的 key）   | 逗号分隔的源 key            | (空)                                                         |
-| WATCH_ROOM_ENABLED                       | 是否启用观影室功能（vercel部署不支持该功能，可使用外部服务器） | true/false                  | false                                                        |
-| WATCH_ROOM_SERVER_TYPE                   | 观影室服务器类型                                             | internal/external           | internal                                                     |
-| WATCH_ROOM_EXTERNAL_SERVER_URL           | 外部观影室服务器地址（当 SERVER_TYPE 为 external 时必填）    | WebSocket URL               | (空)                                                         |
-| WATCH_ROOM_EXTERNAL_SERVER_AUTH          | 外部观影室服务器认证令牌（当 SERVER_TYPE 为 external 时必填） | 任意字符串                  | (空)                                                         |
+| WATCH_ROOM_ENABLED                       | 观影室旧版环境变量开关，用于本地存储模式和首次迁移默认值；数据库部署请在管理员页面配置 | true/false                  | false                                                        |
+| WATCH_ROOM_SERVER_TYPE                   | 观影室旧版服务器类型默认值                                   | internal/external           | internal                                                     |
+| WATCH_ROOM_EXTERNAL_SERVER_URL           | 观影室旧版外部服务器地址默认值                               | WebSocket URL               | (空)                                                         |
+| WATCH_ROOM_EXTERNAL_SERVER_AUTH          | 观影室旧版外部服务器认证令牌默认值                           | 任意字符串                  | (空)                                                         |
 | NEXT_PUBLIC_VOICE_CHAT_STRATEGY          | 观影室语音聊天策略                                           | webrtc-fallback/server-only | webrtc-fallback                                              |
 | NEXT_PUBLIC_ENABLE_OFFLINE_DOWNLOAD      | 是否启用服务器离线下载功能（开启后也仅管理员和站长可用）     | true/false                  | false                                                        |
 | OFFLINE_DOWNLOAD_DIR                     | 离线下载文件存储目录                                         | 任意有效路径                | /data                                                        |
@@ -485,16 +485,13 @@ NEXT_PUBLIC_VOICE_CHAT_STRATEGY 选项解释：
 
 1. 按照 [watch-room-server](https://github.com/tgs9915/watch-room-server) 的文档部署外部服务器
 
-2. 在 MoonTVPlus 中设置以下环境变量：
+2. 进入 MoonTVPlus 管理员页面，打开「观影室配置」
 
-   ```env
-   WATCH_ROOM_ENABLED=true
-   WATCH_ROOM_SERVER_TYPE=external
-   WATCH_ROOM_EXTERNAL_SERVER_URL=wss://your-watch-room-server.com
-   WATCH_ROOM_EXTERNAL_SERVER_AUTH=your_secure_token
-   ```
+3. 开启「启用观影室」，服务器类型选择「外部」
 
-3. 重启应用即可使用外部观影室服务器
+4. 填写外部服务器地址和鉴权密钥，保存配置
+
+旧版 `WATCH_ROOM_*` 环境变量会作为首次配置迁移默认值。保存到管理员页面后，数据库备份会包含观影室配置。
 
 
 

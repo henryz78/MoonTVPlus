@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-var-requires, no-console, no-empty, unused-imports/no-unused-vars */
+
 // Next.js 自定义服务器 + Socket.IO
 const { createServer } = require('http');
 const { parse } = require('url');
@@ -40,22 +42,174 @@ ensureSQLiteReady();
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = process.env.HOSTNAME || '0.0.0.0';
 const port = parseInt(process.env.PORT || '3000', 10);
+const ADMIN_CONFIG_KEY = 'admin:config';
 
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
+function getEnvWatchRoomConfig() {
+  const isLiteMode = process.env.MOONTV_LITE === 'true';
+
+  return {
+    enabled: !isLiteMode && process.env.WATCH_ROOM_ENABLED === 'true',
+    serverType:
+      process.env.WATCH_ROOM_SERVER_TYPE === 'external'
+        ? 'external'
+        : 'internal',
+    externalServerUrl: process.env.WATCH_ROOM_EXTERNAL_SERVER_URL || '',
+    externalServerAuth: process.env.WATCH_ROOM_EXTERNAL_SERVER_AUTH || '',
+  };
+}
+
+function normalizeWatchRoomConfig(config) {
+  const fallback = getEnvWatchRoomConfig();
+  const source = config && typeof config === 'object' ? config : {};
+  const isLiteMode = process.env.MOONTV_LITE === 'true';
+
+  return {
+    enabled: !isLiteMode && Boolean(source.Enabled ?? fallback.enabled),
+    serverType:
+      source.ServerType === 'external' || source.ServerType === 'internal'
+        ? source.ServerType
+        : fallback.serverType,
+    externalServerUrl:
+      typeof source.ExternalServerUrl === 'string'
+        ? source.ExternalServerUrl
+        : fallback.externalServerUrl,
+    externalServerAuth:
+      typeof source.ExternalServerAuth === 'string'
+        ? source.ExternalServerAuth
+        : fallback.externalServerAuth,
+  };
+}
+
+function parseAdminConfigValue(value) {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === 'object') {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    return JSON.parse(value);
+  }
+
+  return null;
+}
+
+async function readRedisAdminConfig(url) {
+  if (!url) {
+    return null;
+  }
+
+  const { createClient } = require('redis');
+  const client = createClient({
+    url,
+    socket: {
+      connectTimeout: 5000,
+      reconnectStrategy: false,
+    },
+  });
+
+  client.on('error', (error) => {
+    console.error('[WatchRoom] Redis config read error:', error.message);
+  });
+
+  try {
+    await client.connect();
+    return parseAdminConfigValue(await client.get(ADMIN_CONFIG_KEY));
+  } finally {
+    if (client.isOpen) {
+      await client.quit().catch(() => undefined);
+    }
+  }
+}
+
+async function readUpstashAdminConfig() {
+  const upstashUrl = process.env.UPSTASH_URL;
+  const upstashToken = process.env.UPSTASH_TOKEN;
+
+  if (!upstashUrl || !upstashToken) {
+    return null;
+  }
+
+  const { Redis } = require('@upstash/redis');
+  const redis = new Redis({
+    url: upstashUrl,
+    token: upstashToken,
+  });
+
+  return parseAdminConfigValue(await redis.get(ADMIN_CONFIG_KEY));
+}
+
+function readSqliteAdminConfig() {
+  const Database = require('better-sqlite3');
+  const { getSqliteDbPath } = require('./scripts/init-sqlite.js');
+  const db = new Database(getSqliteDbPath());
+
+  try {
+    const row = db
+      .prepare('SELECT config FROM admin_config WHERE id = 1')
+      .get();
+    return parseAdminConfigValue(row?.config);
+  } finally {
+    db.close();
+  }
+}
+
+async function readPostgresAdminConfig() {
+  const { sql } = require('@vercel/postgres');
+  const result = await sql.query('SELECT config FROM admin_config WHERE id = 1');
+  return parseAdminConfigValue(result.rows?.[0]?.config);
+}
+
+async function readStoredAdminConfig(storageType) {
+  switch (storageType) {
+    case 'redis':
+      return readRedisAdminConfig(process.env.REDIS_URL);
+    case 'kvrocks':
+      return readRedisAdminConfig(process.env.KVROCKS_URL);
+    case 'upstash':
+      return readUpstashAdminConfig();
+    case 'd1':
+      return readSqliteAdminConfig();
+    case 'postgres':
+      return readPostgresAdminConfig();
+    default:
+      return null;
+  }
+}
+
 // 读取观影室配置的辅助函数
 async function getWatchRoomConfig() {
-  // 观影室配置现在统一从环境变量读取
-  const config = {
-    enabled: process.env.WATCH_ROOM_ENABLED === 'true',
-    serverType: (process.env.WATCH_ROOM_SERVER_TYPE || 'internal'),
-    externalServerUrl: process.env.WATCH_ROOM_EXTERNAL_SERVER_URL,
-    externalServerAuth: process.env.WATCH_ROOM_EXTERNAL_SERVER_AUTH,
-  };
+  const storageType = process.env.NEXT_PUBLIC_STORAGE_TYPE || 'localstorage';
 
-  console.log(`[WatchRoom] Watch room ${config.enabled ? 'enabled' : 'disabled'} via environment variable.`);
-  return config;
+  if (storageType === 'localstorage') {
+    return getEnvWatchRoomConfig();
+  }
+
+  try {
+    const adminConfig = await readStoredAdminConfig(storageType);
+    if (adminConfig?.WatchRoomConfig) {
+      return normalizeWatchRoomConfig(adminConfig.WatchRoomConfig);
+    }
+  } catch (error) {
+    console.error(
+      '[WatchRoom] Failed to read admin config, using legacy env fallback:',
+      error.message
+    );
+  }
+
+  return getEnvWatchRoomConfig();
+}
+
+function getWatchRoomLogConfig(config) {
+  return {
+    ...config,
+    externalServerAuth: config.externalServerAuth ? '[configured]' : '',
+  };
 }
 
 // 观影室服务器类
@@ -820,7 +974,7 @@ app.prepare().then(async () => {
 
   // 读取观影室配置
   const watchRoomConfig = await getWatchRoomConfig();
-  console.log('[WatchRoom] Config:', watchRoomConfig);
+  console.log('[WatchRoom] Config:', getWatchRoomLogConfig(watchRoomConfig));
 
   let watchRoomServer = null;
   let tvRemoteServer = null;

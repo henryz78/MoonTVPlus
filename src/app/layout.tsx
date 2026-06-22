@@ -123,6 +123,9 @@ export default async function RootLayout({
   let aiDefaultMessageNoVideo = '';
   let aiDefaultMessageWithVideo = '';
   let enableMovieRequest = true;
+  let watchRoomFeatureEnabled =
+    process.env.MOONTV_LITE !== 'true' &&
+    process.env.WATCH_ROOM_ENABLED === 'true';
   let liveEnabled = true;
   let webLiveEnabled = false;
   let customAdFilterVersion = 0;
@@ -151,6 +154,9 @@ export default async function RootLayout({
     siteName = config.SiteConfig.SiteName;
     announcement = config.SiteConfig.Announcement;
     announcementForceRead = config.SiteConfig.AnnouncementForceRead || false;
+    watchRoomFeatureEnabled =
+      process.env.MOONTV_LITE !== 'true' &&
+      Boolean(config.WatchRoomConfig?.Enabled);
 
     doubanProxyType = config.SiteConfig.DoubanProxyType;
     doubanProxy = config.SiteConfig.DoubanProxy;
@@ -321,6 +327,7 @@ export default async function RootLayout({
     LIVE_ENABLED: liveEnabled && userFeatureAccess.live,
     WEB_LIVE_ENABLED: webLiveEnabled && userFeatureAccess.web_live,
     ADVANCED_RECOMMENDATION_ENABLED: advancedRecommendationEnabled,
+    WATCH_ROOM_ENABLED: watchRoomFeatureEnabled,
     CUSTOM_AD_FILTER_VERSION: customAdFilterVersion,
     MUSIC_ENABLED: musicFeatureEnabled && userFeatureAccess.music,
     MUSIC_PROXY_ENABLED: musicProxyEnabled,

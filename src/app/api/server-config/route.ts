@@ -15,24 +15,35 @@ export async function GET(request: NextRequest) {
 
   const isLiteMode = process.env.MOONTV_LITE === 'true';
 
-  // Lite 镜像不暴露内置观影室能力，避免前端尝试连接本地 Socket.IO 服务
-  // 注意：不要暴露 externalServerAuth 到前端，这是敏感凭据
-  const watchRoomConfig = isLiteMode
-    ? {
-        enabled: false,
-        serverType: 'external' as const,
-        externalServerUrl: undefined,
-      }
-    : {
-        enabled: process.env.WATCH_ROOM_ENABLED === 'true',
-        serverType:
-          (process.env.WATCH_ROOM_SERVER_TYPE as 'internal' | 'external') ||
-          'internal',
-        externalServerUrl: process.env.WATCH_ROOM_EXTERNAL_SERVER_URL,
-      };
+  const buildWatchRoomConfig = (config: {
+    Enabled?: boolean;
+    ServerType?: 'internal' | 'external';
+    ExternalServerUrl?: string;
+  }) => {
+    const enabled = !isLiteMode && Boolean(config.Enabled);
+    const serverType = config.ServerType || 'internal';
+
+    return {
+      enabled,
+      serverType,
+      externalServerUrl:
+        enabled && serverType === 'external'
+          ? config.ExternalServerUrl || ''
+          : undefined,
+    };
+  };
 
   // 如果使用 localStorage，返回默认配置
   if (storageType === 'localstorage') {
+    const watchRoomConfig = buildWatchRoomConfig({
+      Enabled: process.env.WATCH_ROOM_ENABLED === 'true',
+      ServerType:
+        process.env.WATCH_ROOM_SERVER_TYPE === 'external'
+          ? 'external'
+          : 'internal',
+      ExternalServerUrl: process.env.WATCH_ROOM_EXTERNAL_SERVER_URL,
+    });
+
     return NextResponse.json({
       SiteName: process.env.NEXT_PUBLIC_SITE_NAME || 'MoonTVPlus',
       StorageType: 'localstorage',
@@ -47,6 +58,7 @@ export async function GET(request: NextRequest) {
 
   // 非 localStorage 模式，从数据库读取配置
   const config = await getConfig();
+  const watchRoomConfig = buildWatchRoomConfig(config.WatchRoomConfig || {});
   const result = {
     SiteName: config.SiteConfig.SiteName,
     StorageType: storageType,

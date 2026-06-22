@@ -11558,6 +11558,162 @@ const SiteConfigComponent = ({
   );
 };
 
+const WatchRoomConfigComponent = ({
+  config,
+  refreshConfig,
+}: {
+  config: AdminConfig | null;
+  refreshConfig: () => Promise<void>;
+}) => {
+  const { alertModal, showAlert, hideAlert } = useAlertModal();
+  const { isLoading, withLoading } = useLoadingState();
+  const [enabled, setEnabled] = useState(false);
+  const [serverType, setServerType] = useState<'internal' | 'external'>(
+    'external'
+  );
+  const [externalServerUrl, setExternalServerUrl] = useState('');
+  const [externalServerAuth, setExternalServerAuth] = useState('');
+
+  useEffect(() => {
+    setEnabled(config?.WatchRoomConfig?.Enabled || false);
+    setServerType(config?.WatchRoomConfig?.ServerType || 'external');
+    setExternalServerUrl(config?.WatchRoomConfig?.ExternalServerUrl || '');
+    setExternalServerAuth(config?.WatchRoomConfig?.ExternalServerAuth || '');
+  }, [config]);
+
+  const handleSave = async () => {
+    await withLoading('saveWatchRoom', async () => {
+      try {
+        const response = await fetch('/api/admin/watch-room', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            Enabled: enabled,
+            ServerType: serverType,
+            ExternalServerUrl: externalServerUrl,
+            ExternalServerAuth: externalServerAuth,
+          }),
+        });
+
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || '保存失败');
+        }
+
+        showSuccess('保存成功', showAlert);
+        await refreshConfig();
+      } catch (error) {
+        showError(
+          error instanceof Error ? error.message : '保存失败',
+          showAlert
+        );
+        throw error;
+      }
+    });
+  };
+
+  return (
+    <div className='space-y-6'>
+      <div className='space-y-4'>
+        <div className='flex items-center justify-between py-3 border-b border-gray-200 dark:border-gray-700'>
+          <div>
+            <h3 className='text-sm font-medium text-gray-900 dark:text-white'>
+              启用观影室
+            </h3>
+          </div>
+          <button
+            type='button'
+            onClick={() => setEnabled(!enabled)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                enabled ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+
+        <div>
+          <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+            服务器类型
+          </label>
+          <div className='inline-flex rounded-lg border border-gray-300 bg-white p-1 dark:border-gray-600 dark:bg-gray-800'>
+            {[
+              { value: 'external', label: '外部' },
+              { value: 'internal', label: '内置' },
+            ].map((option) => (
+              <button
+                key={option.value}
+                type='button'
+                onClick={() =>
+                  setServerType(option.value as 'internal' | 'external')
+                }
+                className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                  serverType === option.value
+                    ? 'bg-green-600 text-white'
+                    : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+            外部服务器地址
+          </label>
+          <input
+            type='text'
+            value={externalServerUrl}
+            onChange={(e) => setExternalServerUrl(e.target.value)}
+            placeholder='wss://watch-room.example.com'
+            className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+          />
+        </div>
+
+        <div>
+          <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+            外部服务器鉴权密钥
+          </label>
+          <input
+            type='password'
+            value={externalServerAuth}
+            onChange={(e) => setExternalServerAuth(e.target.value)}
+            placeholder='可选'
+            className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+          />
+        </div>
+
+        <div className='flex justify-end'>
+          <button
+            type='button'
+            onClick={handleSave}
+            disabled={isLoading('saveWatchRoom')}
+            className={buttonStyles.success}
+          >
+            {isLoading('saveWatchRoom') ? '保存中...' : '保存配置'}
+          </button>
+        </div>
+      </div>
+
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={hideAlert}
+        type={alertModal.type}
+        title={alertModal.title}
+        message={alertModal.message}
+        timer={alertModal.timer}
+        showConfirm={alertModal.showConfirm}
+      />
+    </div>
+  );
+};
+
 // 注册配置组件
 const RegistrationConfigComponent = ({
   config,
@@ -16917,6 +17073,7 @@ function AdminPageClient() {
     aiConfig: false,
     liveSource: false,
     webLive: false,
+    watchRoomConfig: false,
     siteConfig: false,
     registrationConfig: false,
     categoryConfig: false,
@@ -17245,6 +17402,23 @@ function AdminPageClient() {
             onToggle={() => toggleTab('siteConfig')}
           >
             <SiteConfigComponent config={config} refreshConfig={fetchConfig} />
+          </CollapsibleTab>
+
+          <CollapsibleTab
+            title='观影室配置'
+            icon={
+              <Monitor
+                size={20}
+                className='text-gray-600 dark:text-gray-400'
+              />
+            }
+            isExpanded={expandedTabs.watchRoomConfig}
+            onToggle={() => toggleTab('watchRoomConfig')}
+          >
+            <WatchRoomConfigComponent
+              config={config}
+              refreshConfig={fetchConfig}
+            />
           </CollapsibleTab>
 
           {/* 注册配置标签 */}

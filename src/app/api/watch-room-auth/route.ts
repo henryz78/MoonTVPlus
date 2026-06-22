@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthInfoFromCookie } from '@/lib/auth';
+import { getConfig } from '@/lib/config';
 
 export const runtime = 'nodejs';
 
@@ -21,8 +22,23 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // 返回外部服务器认证信息
-  const externalServerAuth = process.env.WATCH_ROOM_EXTERNAL_SERVER_AUTH;
+  const storageType = process.env.NEXT_PUBLIC_STORAGE_TYPE || 'localstorage';
+  const watchRoomConfig =
+    storageType === 'localstorage'
+      ? {
+          Enabled: process.env.WATCH_ROOM_ENABLED === 'true',
+          ServerType:
+            process.env.WATCH_ROOM_SERVER_TYPE === 'external'
+              ? 'external'
+              : 'internal',
+          ExternalServerAuth: process.env.WATCH_ROOM_EXTERNAL_SERVER_AUTH,
+        }
+      : (await getConfig()).WatchRoomConfig;
+
+  const externalServerAuth =
+    watchRoomConfig?.Enabled && watchRoomConfig.ServerType === 'external'
+      ? watchRoomConfig.ExternalServerAuth
+      : null;
 
   return NextResponse.json({
     externalServerAuth: externalServerAuth || null,

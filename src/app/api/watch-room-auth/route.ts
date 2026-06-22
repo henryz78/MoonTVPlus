@@ -4,7 +4,6 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthInfoFromCookie } from '@/lib/auth';
 import { getConfig } from '@/lib/config';
-import { createWatchRoomAccessToken } from '@/lib/watch-room-access-token';
 
 export const runtime = 'nodejs';
 
@@ -43,13 +42,7 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json(
     {
-      externalServerAuth: externalServerSecret
-        ? createWatchRoomAccessToken(
-            authInfo.username,
-            externalServerSecret,
-            5 * 60
-          )
-        : null,
+      externalServerAuth: externalServerSecret || null,
     },
     {
       headers: {

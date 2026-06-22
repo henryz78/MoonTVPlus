@@ -9,7 +9,7 @@ on:
         default: 'latest'
         type: string
   push:
-    branches: [main, master, hy]
+    branches: [main, master]
   pull_request:
     branches: [main, master]
 

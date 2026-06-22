@@ -55,19 +55,14 @@ describe('GET /api/play-stats', () => {
     (getAuthInfoFromCookie as jest.Mock).mockReturnValue({ username: 'alice' });
     (getPlayStats as jest.Mock).mockResolvedValue({
       viewerRole: 'user',
-      totalUsers: 1,
-      onlineUsers: 1,
       totalPlayRecords: 2,
       totalWatchSeconds: 120,
-      todayActiveUsers: 1,
-      last7DaysActiveUsers: 1,
       todayPlayRecords: 1,
       last7DaysPlayRecords: 2,
       todayWatchSeconds: 60,
       last7DaysWatchSeconds: 120,
       lastWatchAt: 100,
-      topTitles: [],
-      userRanking: [],
+      latestRecord: null,
       recentRecords: [],
     });
     (getOnlineCount as jest.Mock).mockResolvedValue(3);
@@ -115,9 +110,10 @@ describe('GET /api/play-stats', () => {
     expect(getPlayStats).toHaveBeenCalledWith({ operatorUsername: 'alice' });
     expect(response.body).toMatchObject({
       viewerRole: 'user',
-      totalUsers: 1,
       totalPlayRecords: 2,
     });
+    expect(response.body).not.toHaveProperty('totalUsers');
+    expect(response.body).not.toHaveProperty('userRanking');
   });
 
   it('returns only the online count for public homepage use', async () => {

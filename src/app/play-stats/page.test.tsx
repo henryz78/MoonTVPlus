@@ -113,4 +113,68 @@ describe('PlayStatsPage', () => {
     );
     expect(screen.getByText('1. 识骨寻踪第一季')).toHaveClass('break-words');
   });
+
+  it('uses neutral copy while stats are loading', () => {
+    window.fetch = jest.fn(
+      () => new Promise<Response>(() => undefined)
+    ) as jest.Mock;
+
+    render(<PlayStatsPage />);
+
+    expect(screen.getByText('查看观看记录和播放时长')).toBeInTheDocument();
+    expect(
+      screen.queryByText('查看可见范围内的观看记录和活跃概况')
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders normal users as a personal watch summary', async () => {
+    window.fetch = jest.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        viewerRole: 'user',
+        totalPlayRecords: 2,
+        totalWatchSeconds: 7_200,
+        todayPlayRecords: 1,
+        last7DaysPlayRecords: 2,
+        todayWatchSeconds: 3_600,
+        last7DaysWatchSeconds: 7_200,
+        lastWatchAt: NOW - 30_000,
+        latestRecord: {
+          title: '我的电影',
+          episode: 3,
+          sourceName: 'source',
+          progressPercent: 80,
+          watchSeconds: 3_600,
+          saveTime: NOW - 30_000,
+        },
+        recentRecords: [
+          {
+            title: '我的电影',
+            episode: 3,
+            sourceName: 'source',
+            progressPercent: 80,
+            watchSeconds: 3_600,
+            saveTime: NOW - 30_000,
+          },
+        ],
+      }),
+    })) as jest.Mock;
+
+    render(<PlayStatsPage />);
+
+    expect(await screen.findByText('播放统计')).toBeInTheDocument();
+    expect(
+      await screen.findByText('查看自己的观看记录和播放时长')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('可见用户')).not.toBeInTheDocument();
+    expect(screen.queryByText('活跃用户')).not.toBeInTheDocument();
+    expect(screen.queryByText('最近观看最多')).not.toBeInTheDocument();
+    expect(screen.getByText('观看记录')).toBeInTheDocument();
+    expect(screen.getByText('总观看时长')).toBeInTheDocument();
+    expect(screen.getByText('上次观看')).toBeInTheDocument();
+    expect(screen.getByText('最近观看')).toBeInTheDocument();
+    expect(screen.getByText('最近观看记录')).toBeInTheDocument();
+    expect(screen.getAllByText(/我的电影/).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/用户：/)).not.toBeInTheDocument();
+  });
 });

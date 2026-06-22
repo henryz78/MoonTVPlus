@@ -25,6 +25,11 @@ export interface PlayStatsRecordSummary {
   saveTime: number;
 }
 
+export type PersonalPlayStatsRecordSummary = Omit<
+  PlayStatsRecordSummary,
+  'username'
+>;
+
 export interface PlayStatsTitleSummary {
   title: string;
   count: number;
@@ -42,23 +47,34 @@ export interface PlayStatsUserSummary {
   latestPlayRecord: PlayStatsRecordSummary | null;
 }
 
-export interface PlayStatsResult {
-  viewerRole: UserActivityRole;
-  totalUsers: number;
-  onlineUsers: number;
+interface PlayStatsBaseResult {
   totalPlayRecords: number;
   totalWatchSeconds: number;
-  todayActiveUsers: number;
-  last7DaysActiveUsers: number;
   todayPlayRecords: number;
   last7DaysPlayRecords: number;
   todayWatchSeconds: number;
   last7DaysWatchSeconds: number;
   lastWatchAt: number | null;
+}
+
+export interface AdminPlayStatsResult extends PlayStatsBaseResult {
+  viewerRole: Exclude<UserActivityRole, 'user'>;
+  totalUsers: number;
+  onlineUsers: number;
+  todayActiveUsers: number;
+  last7DaysActiveUsers: number;
   topTitles: PlayStatsTitleSummary[];
   userRanking: PlayStatsUserSummary[];
   recentRecords: PlayStatsRecordSummary[];
 }
+
+export interface UserPlayStatsResult extends PlayStatsBaseResult {
+  viewerRole: 'user';
+  latestRecord: PersonalPlayStatsRecordSummary | null;
+  recentRecords: PersonalPlayStatsRecordSummary[];
+}
+
+export type PlayStatsResult = AdminPlayStatsResult | UserPlayStatsResult;
 
 function progressPercent(record: PlayRecord) {
   if (!record.total_time) return 0;
@@ -87,6 +103,19 @@ function toRecordSummary(
     progressPercent: progressPercent(record),
     watchSeconds: watchSeconds(record),
     saveTime: record.save_time,
+  };
+}
+
+function toPersonalRecordSummary(
+  record: PlayStatsRecordSummary
+): PersonalPlayStatsRecordSummary {
+  return {
+    title: record.title,
+    episode: record.episode,
+    sourceName: record.sourceName,
+    progressPercent: record.progressPercent,
+    watchSeconds: record.watchSeconds,
+    saveTime: record.saveTime,
   };
 }
 
@@ -260,37 +289,55 @@ export async function getPlayStats(input: {
       return b.lastActiveAt - a.lastActiveAt;
     });
 
+  const totalPlayRecords = userStats.reduce(
+    (total, item) => total + item.records.length,
+    0
+  );
+  const sortedRecentRecords = recentRecords
+    .sort((a, b) => b.saveTime - a.saveTime)
+    .slice(0, TOP_LIMIT);
+  const baseStats: PlayStatsBaseResult = {
+    totalPlayRecords,
+    totalWatchSeconds,
+    todayPlayRecords,
+    last7DaysPlayRecords,
+    todayWatchSeconds,
+    last7DaysWatchSeconds,
+    lastWatchAt,
+  };
+
+  if (operatorRole === 'user') {
+    const personalRecentRecords = sortedRecentRecords.map(
+      toPersonalRecordSummary
+    );
+
+    return {
+      viewerRole: 'user',
+      ...baseStats,
+      latestRecord: personalRecentRecords[0] || null,
+      recentRecords: personalRecentRecords,
+    };
+  }
+
   return {
     viewerRole: operatorRole,
+    ...baseStats,
     totalUsers: visibleUsers.length,
     onlineUsers: userStats.filter((item) => item.isOnline).length,
-    totalPlayRecords: userStats.reduce(
-      (total, item) => total + item.records.length,
-      0
-    ),
-    totalWatchSeconds,
     todayActiveUsers: userStats.filter((item) =>
       item.lastActiveAt ? isSameLocalDay(item.lastActiveAt, now) : false
     ).length,
     last7DaysActiveUsers: userStats.filter((item) =>
       item.lastActiveAt ? item.lastActiveAt >= sevenDaysAgo : false
     ).length,
-    todayPlayRecords,
-    last7DaysPlayRecords,
-    todayWatchSeconds,
-    last7DaysWatchSeconds,
-    lastWatchAt,
     topTitles: Array.from(titleCounts.values())
       .sort((a, b) => {
         if (b.count !== a.count) return b.count - a.count;
         return b.latestSaveTime - a.latestSaveTime;
       })
       .slice(0, TOP_LIMIT),
-    userRanking:
-      operatorRole === 'user' ? userRanking.slice(0, 1) : userRanking,
-    recentRecords: recentRecords
-      .sort((a, b) => b.saveTime - a.saveTime)
-      .slice(0, TOP_LIMIT),
+    userRanking,
+    recentRecords: sortedRecentRecords,
   };
 }
 

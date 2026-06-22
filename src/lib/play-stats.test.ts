@@ -89,6 +89,9 @@ describe('play stats helpers', () => {
     const result = await getPlayStats({ operatorUsername: 'owner' });
 
     expect(result.viewerRole).toBe('owner');
+    if (result.viewerRole !== 'owner') {
+      throw new Error('expected owner stats');
+    }
     expect(result.totalUsers).toBe(2);
     expect(result.totalPlayRecords).toBe(2);
     expect(result.totalWatchSeconds).toBe(100);
@@ -112,6 +115,9 @@ describe('play stats helpers', () => {
 
     const result = await getPlayStats({ operatorUsername: 'admin' });
 
+    if (result.viewerRole !== 'admin') {
+      throw new Error('expected admin stats');
+    }
     expect(result.userRanking.map((item) => item.username).sort()).toEqual([
       'admin',
       'alice',
@@ -126,11 +132,29 @@ describe('play stats helpers', () => {
     const result = await getPlayStats({ operatorUsername: 'alice' });
 
     expect(result.viewerRole).toBe('user');
-    expect(result.totalUsers).toBe(1);
-    expect(result.userRanking).toHaveLength(1);
-    expect(result.userRanking[0].username).toBe('alice');
-    expect(result.userRanking[0].watchSeconds).toBe(50);
-    expect(result.recentRecords[0].username).toBe('alice');
+    expect(result).toMatchObject({
+      totalPlayRecords: 1,
+      totalWatchSeconds: 50,
+      todayPlayRecords: 1,
+      last7DaysPlayRecords: 1,
+      todayWatchSeconds: 50,
+      last7DaysWatchSeconds: 50,
+      lastWatchAt: ONE_HOUR_AGO,
+      latestRecord: {
+        title: '我的电影',
+        episode: 1,
+        sourceName: 'source',
+        progressPercent: 50,
+        watchSeconds: 50,
+        saveTime: ONE_HOUR_AGO,
+      },
+    });
+    expect(result).not.toHaveProperty('totalUsers');
+    expect(result).not.toHaveProperty('onlineUsers');
+    expect(result).not.toHaveProperty('todayActiveUsers');
+    expect(result).not.toHaveProperty('topTitles');
+    expect(result).not.toHaveProperty('userRanking');
+    expect(result.recentRecords[0]).not.toHaveProperty('username');
   });
 
   it('sums watch duration with sane bounds per user and title', async () => {
@@ -152,6 +176,9 @@ describe('play stats helpers', () => {
 
     const result = await getPlayStats({ operatorUsername: 'owner' });
 
+    if (result.viewerRole !== 'owner') {
+      throw new Error('expected owner stats');
+    }
     expect(result.totalWatchSeconds).toBe(420);
     expect(result.last7DaysWatchSeconds).toBe(420);
     expect(result.todayWatchSeconds).toBe(420);

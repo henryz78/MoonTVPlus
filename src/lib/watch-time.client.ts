@@ -23,13 +23,16 @@ function canCount(state: WatchTimeTrackerState) {
 
 export class RealWatchTimeTracker {
   private lastState: WatchTimeTrackerState | null = null;
+  private pendingSeconds = 0;
 
   start(state: WatchTimeTrackerState) {
     this.lastState = state;
+    this.pendingSeconds = 0;
   }
 
   reset(state: WatchTimeTrackerState) {
     this.lastState = state;
+    this.pendingSeconds = 0;
   }
 
   tick(state: WatchTimeTrackerState) {
@@ -42,26 +45,28 @@ export class RealWatchTimeTracker {
     this.lastState = state;
 
     if (!canCount(previous) || !canCount(state)) {
+      this.pendingSeconds = 0;
       return 0;
     }
 
-    const elapsedSeconds = Math.max(
-      0,
-      Math.floor((state.now - previous.now) / 1000)
-    );
+    const elapsedSeconds = Math.max(0, (state.now - previous.now) / 1000);
     if (elapsedSeconds <= 0) return 0;
 
     const positionDelta = Math.max(0, state.position - previous.position);
-    const plausiblePositionDelta = Math.ceil(
-      elapsedSeconds * Math.max(previous.playbackRate, state.playbackRate) + 2
-    );
+    const plausiblePositionDelta =
+      elapsedSeconds * Math.max(previous.playbackRate, state.playbackRate) + 2;
 
-    return Math.min(
+    const countableSeconds = Math.min(
       elapsedSeconds,
       positionDelta,
       plausiblePositionDelta,
       MAX_TICK_SECONDS
     );
+    this.pendingSeconds += countableSeconds;
+
+    const wholeSeconds = Math.floor(this.pendingSeconds);
+    this.pendingSeconds -= wholeSeconds;
+    return wholeSeconds;
   }
 }
 

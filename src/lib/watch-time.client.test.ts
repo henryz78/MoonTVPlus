@@ -28,6 +28,31 @@ describe('RealWatchTimeTracker', () => {
     ).toBe(20);
   });
 
+  it('accumulates frequent subsecond timeupdate ticks', () => {
+    const tracker = new RealWatchTimeTracker();
+
+    tracker.start({
+      now: 1_000,
+      position: 10,
+      playing: true,
+      visible: true,
+      playbackRate: 1,
+    });
+
+    let total = 0;
+    for (let index = 1; index <= 40; index += 1) {
+      total += tracker.tick({
+        now: 1_000 + index * 500,
+        position: 10 + index * 0.5,
+        playing: true,
+        visible: true,
+        playbackRate: 1,
+      });
+    }
+
+    expect(total).toBe(20);
+  });
+
   it('does not turn a seek jump into watch seconds', () => {
     const tracker = new RealWatchTimeTracker();
 

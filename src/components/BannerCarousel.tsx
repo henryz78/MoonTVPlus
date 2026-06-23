@@ -28,6 +28,7 @@ import {
   getBannerImagePresentation,
   getSavedHomeBannerHeightScale,
 } from '@/lib/home-banner';
+import { getBannerLocalStorageKey } from '@/lib/home-banner-source';
 
 import ProxyImage from '@/components/ProxyImage';
 
@@ -89,7 +90,7 @@ export default function BannerCarousel({
 
   // 根据数据源获取缓存key
   const getLocalStorageKey = (source: string) => {
-    return `banner_trending_cache_${source}`;
+    return getBannerLocalStorageKey(source);
   };
 
   // 跳转到播放页面

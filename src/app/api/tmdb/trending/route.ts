@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 
 import { getConfig } from '@/lib/config';
 import { fetchDoubanData } from '@/lib/douban';
-import { rotateBannerItems } from '@/lib/home-banner-source';
+import { buildDoubanBannerRecommendUrl } from '@/lib/home-banner-source';
 import { getTMDBTrendingContent, getTMDBVideos } from '@/lib/tmdb.client';
 
 // 缓存配置 - 服务器内存缓存3小时
@@ -275,14 +275,17 @@ async function getDoubanBannerContent(): Promise<{
   list: any[];
 }> {
   try {
-    // 获取豆瓣热门电影
-    const hotMoviesUrl =
-      'https://m.douban.com/rexxar/api/v2/subject/recent_hot/movie?start=0&limit=15&category=热门&type=全部';
+    const bannerMoviesUrl = buildDoubanBannerRecommendUrl({
+      limit: 10,
+      start: 0,
+    });
 
-    interface DoubanHotMovie {
+    interface DoubanBannerMovie {
       id: string;
       title: string;
       card_subtitle?: string;
+      year?: string;
+      type?: string;
       pic?: {
         large: string;
         normal: string;
@@ -292,23 +295,25 @@ async function getDoubanBannerContent(): Promise<{
       };
     }
 
-    interface DoubanHotMoviesResponse {
-      items: DoubanHotMovie[];
+    interface DoubanBannerMovieResponse {
+      items: DoubanBannerMovie[];
     }
 
-    const hotMoviesData = await fetchDoubanData<DoubanHotMoviesResponse>(
-      hotMoviesUrl
+    const bannerMoviesData = await fetchDoubanData<DoubanBannerMovieResponse>(
+      bannerMoviesUrl
     );
 
-    if (!hotMoviesData.items || hotMoviesData.items.length === 0) {
+    if (!bannerMoviesData.items || bannerMoviesData.items.length === 0) {
       return { code: 200, list: [] };
     }
 
-    const topMovies = rotateBannerItems(hotMoviesData.items, 5, 5);
+    const bannerMovies = bannerMoviesData.items
+      .filter((movie) => !movie.type || movie.type === 'movie')
+      .slice(0, 5);
 
     // 为每个电影获取详情信息
     const bannerItems = await Promise.all(
-      topMovies.map(async (movie) => {
+      bannerMovies.map(async (movie) => {
         try {
           const detailUrl = `https://m.douban.com/rexxar/api/v2/subject/${movie.id}`;
 
@@ -322,6 +327,10 @@ async function getDoubanBannerContent(): Promise<{
             };
             intro?: string;
             genres?: string[];
+            pic?: {
+              large: string;
+              normal: string;
+            };
             cover_url?: string;
             trailers?: Array<{
               video_url?: string;
@@ -334,29 +343,24 @@ async function getDoubanBannerContent(): Promise<{
 
           // 获取横屏图片
           const backdropPath =
-            detail.cover_url || movie.pic?.large || movie.pic?.normal || '';
+            detail.cover_url ||
+            detail.pic?.large ||
+            movie.pic?.large ||
+            movie.pic?.normal ||
+            '';
 
           // 提取年份
           const year =
-            detail.year || movie.card_subtitle?.match(/(\d{4})/)?.[1] || '';
+            detail.year ||
+            movie.year ||
+            movie.card_subtitle?.match(/(\d{4})/)?.[1] ||
+            '';
 
-          // 从card_subtitle提取标签（只读取第二个部分，通过空格分割）
-          let tags: string[] = [];
-          if (movie.card_subtitle) {
-            const parts = movie.card_subtitle.split('/').map((s) => s.trim());
-            // 过滤掉年份（纯数字）和空字符串
-            const filteredParts = parts.filter(
-              (part) => part && !/^\d{4}$/.test(part)
-            );
-            // 取第二个部分（类型），通过空格分割
-            if (filteredParts.length >= 2) {
-              tags = filteredParts[1].split(/\s+/).filter((t) => t);
-            }
-          }
+          const tags = Array.isArray(detail.genres) ? detail.genres : [];
 
           return {
             id: movie.id,
-            title: detail.title,
+            title: detail.title || movie.title,
             backdrop_path: backdropPath,
             poster_path: backdropPath,
             release_date: year,
@@ -364,7 +368,7 @@ async function getDoubanBannerContent(): Promise<{
             vote_average: detail.rating?.value || movie.rating?.value || 0,
             media_type: 'movie',
             genre_ids: [],
-            genres: tags, // 使用从card_subtitle提取的标签
+            genres: tags,
             video_key: null, // 豆瓣不使用YouTube key
           };
         } catch (error) {
@@ -390,7 +394,8 @@ async function getDoubanBannerContent(): Promise<{
             title: movie.title,
             backdrop_path: movie.pic?.large || movie.pic?.normal || '',
             poster_path: movie.pic?.large || movie.pic?.normal || '',
-            release_date: movie.card_subtitle?.match(/(\d{4})/)?.[1] || '',
+            release_date:
+              movie.year || movie.card_subtitle?.match(/(\d{4})/)?.[1] || '',
             overview: '',
             vote_average: movie.rating?.value || 0,
             media_type: 'movie',

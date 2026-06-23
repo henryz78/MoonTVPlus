@@ -1,19 +1,21 @@
-import { rotateBannerItems } from './home-banner-source';
+import {
+  buildDoubanBannerRecommendUrl,
+  getBannerLocalStorageKey,
+} from './home-banner-source';
 
 describe('home banner source selection', () => {
-  it('starts banner items after the first homepage movie rows', () => {
-    expect(rotateBannerItems([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 5, 5)).toEqual([
-      6, 7, 8, 9, 10,
-    ]);
+  it('uses douban recommend as the banner source', () => {
+    const url = buildDoubanBannerRecommendUrl({ limit: 10, start: 0 });
+
+    expect(url).toContain('/rexxar/api/v2/movie/recommend?');
+    expect(url).toContain('count=10');
+    expect(url).toContain('start=0');
+    expect(url).not.toContain('/subject/recent_hot/');
   });
 
-  it('wraps around when there are fewer items after the offset', () => {
-    expect(rotateBannerItems([1, 2, 3, 4, 5, 6, 7], 5, 5)).toEqual([
-      6, 7, 1, 2, 3,
-    ]);
-  });
-
-  it('keeps short lists usable', () => {
-    expect(rotateBannerItems([1, 2, 3], 5, 5)).toEqual([1, 2, 3]);
+  it('uses a versioned local storage key for banner cache', () => {
+    expect(getBannerLocalStorageKey('Douban')).toBe(
+      'banner_trending_cache_v2_Douban'
+    );
   });
 });

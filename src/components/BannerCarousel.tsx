@@ -580,8 +580,14 @@ export default function BannerCarousel({
                   <>
                     {showDesktopPosterCard ? (
                       <>
-                        <div className='absolute inset-0 bg-gradient-to-br from-slate-950 via-gray-950 to-black' />
-                        <div className='absolute inset-0 bg-[radial-gradient(circle_at_78%_45%,rgba(255,255,255,0.14),transparent_30%),radial-gradient(circle_at_18%_20%,rgba(59,130,246,0.18),transparent_36%)]' />
+                        <ProxyImage
+                          originalSrc={imageUrl}
+                          alt=''
+                          aria-hidden='true'
+                          className='absolute inset-0 h-full w-full scale-125 object-cover opacity-55 blur-3xl'
+                          loading={index === 0 ? 'eager' : 'lazy'}
+                        />
+                        <div className='absolute inset-0 bg-black/20' />
                         <div className='absolute right-[8%] top-1/2 hidden h-[76%] max-h-[430px] w-[28%] min-w-[220px] max-w-[320px] -translate-y-1/2 items-center justify-center md:flex'>
                           <ProxyImage
                             originalSrc={imageUrl}

@@ -15,8 +15,6 @@ class WatchRoomSocketManager {
   private config: WatchRoomConfig | null = null;
   private connectionPromise: Promise<WatchRoomSocket> | null = null;
   private heartbeatInterval: NodeJS.Timeout | null = null;
-  private heartbeatTimeoutCheck: NodeJS.Timeout | null = null;
-  private lastHeartbeatResponse: number = Date.now();
   private visibilityChangeHandler: (() => void) | null = null;
   private reconnectFailedCallback: (() => void) | null = null;
   private reconnectSuccessCallback: (() => void) | null = null;
@@ -92,14 +90,11 @@ class WatchRoomSocketManager {
       });
     }
 
-    // 设置事件监听（包括 heartbeat:pong）
+    // 设置事件监听
     this.setupEventListeners();
 
-    // 开始心跳
+    // 开始上报房间活跃心跳
     this.startHeartbeat();
-
-    // 启动心跳超时检查
-    this.startHeartbeatTimeoutCheck();
 
     // 设置浏览器可见性监听
     this.setupVisibilityListener();
@@ -138,11 +133,6 @@ class WatchRoomSocketManager {
       this.heartbeatInterval = null;
     }
 
-    if (this.heartbeatTimeoutCheck) {
-      clearInterval(this.heartbeatTimeoutCheck);
-      this.heartbeatTimeoutCheck = null;
-    }
-
     // 移除浏览器可见性监听
     this.removeVisibilityListener();
 
@@ -151,7 +141,6 @@ class WatchRoomSocketManager {
       this.socket.off('connect');
       this.socket.off('disconnect');
       this.socket.off('error');
-      this.socket.off('heartbeat:pong');
       this.socket.io.off('reconnect_attempt');
       this.socket.io.off('reconnect');
       this.socket.io.off('reconnect_failed');
@@ -177,8 +166,6 @@ class WatchRoomSocketManager {
     this.socket.on('connect', () => {
       // eslint-disable-next-line no-console
       console.log('[WatchRoom] Socket connected');
-      // 重置心跳响应时间
-      this.lastHeartbeatResponse = Date.now();
     });
 
     this.socket.on('disconnect', (reason) => {
@@ -191,11 +178,6 @@ class WatchRoomSocketManager {
       console.error('[WatchRoom] Socket error:', error);
     });
 
-    // 监听心跳响应
-    this.socket.on('heartbeat:pong', (_data: { timestamp: number }) => {
-      this.lastHeartbeatResponse = Date.now();
-    });
-
     // 监听重连尝试
     this.socket.io.on('reconnect_attempt', (attemptNumber) => {
       // eslint-disable-next-line no-console
@@ -206,8 +188,6 @@ class WatchRoomSocketManager {
     this.socket.io.on('reconnect', (attemptNumber) => {
       // eslint-disable-next-line no-console
       console.log('[WatchRoom] Reconnected after', attemptNumber, 'attempts');
-      // 重置心跳响应时间
-      this.lastHeartbeatResponse = Date.now();
       this.reconnectSuccessCallback?.();
     });
 
@@ -229,38 +209,6 @@ class WatchRoomSocketManager {
         this.socket.emit('heartbeat');
       }
     }, 5000); // 每5秒发送一次心跳
-  }
-
-  // 启动心跳超时检查
-  private startHeartbeatTimeoutCheck() {
-    if (this.heartbeatTimeoutCheck) {
-      clearInterval(this.heartbeatTimeoutCheck);
-    }
-
-    // 每3秒检查一次心跳超时
-    this.heartbeatTimeoutCheck = setInterval(() => {
-      if (!this.socket?.connected) {
-        return;
-      }
-
-      const now = Date.now();
-      const timeSinceLastResponse = now - this.lastHeartbeatResponse;
-
-      // 如果超过15秒没有收到心跳响应，认为连接可能有问题
-      if (timeSinceLastResponse > 15000) {
-        // eslint-disable-next-line no-console
-        console.warn('[WatchRoom] Heartbeat timeout detected, last response was', timeSinceLastResponse, 'ms ago');
-
-        // 不要强制断开连接，让 Socket.IO 的自动重连机制处理
-        // Socket.IO 会自动检测连接问题并尝试重连
-        // 只记录警告，不主动断开
-        // eslint-disable-next-line no-console
-        console.warn('[WatchRoom] Waiting for Socket.IO auto-reconnect mechanism');
-
-        // 重置心跳响应时间，避免重复触发警告
-        this.lastHeartbeatResponse = Date.now();
-      }
-    }, 3000);
   }
 
   // 设置浏览器可见性监听

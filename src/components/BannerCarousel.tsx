@@ -25,8 +25,8 @@ import {
 import { getDoubanDetail } from '@/lib/douban.client';
 import {
   type HomeBannerHeightScale,
+  getBannerImagePresentation,
   getSavedHomeBannerHeightScale,
-  isPosterLikeBannerImageUrl,
 } from '@/lib/home-banner';
 
 import ProxyImage from '@/components/ProxyImage';
@@ -130,9 +130,6 @@ export default function BannerCarousel({
     }
     return url;
   };
-
-  const shouldContainBannerImage = (imageUrl: string) =>
-    !isMobileView && isPosterLikeBannerImageUrl(imageUrl);
 
   // 读取本地设置
   useEffect(() => {
@@ -571,27 +568,38 @@ export default function BannerCarousel({
                 const imageUrl = getImageUrl(
                   item.backdrop_path || item.poster_path
                 );
-                const containImage = shouldContainBannerImage(imageUrl);
+                const imagePresentation = getBannerImagePresentation(
+                  imageUrl,
+                  isMobileView,
+                  Boolean(item.backdrop_path)
+                );
+                const showDesktopPosterCard =
+                  imagePresentation === 'desktop-poster-card';
 
                 return (
                   <>
-                    {containImage && (
+                    {showDesktopPosterCard ? (
+                      <>
+                        <div className='absolute inset-0 bg-gradient-to-br from-slate-950 via-gray-950 to-black' />
+                        <div className='absolute inset-0 bg-[radial-gradient(circle_at_78%_45%,rgba(255,255,255,0.14),transparent_30%),radial-gradient(circle_at_18%_20%,rgba(59,130,246,0.18),transparent_36%)]' />
+                        <div className='absolute right-[8%] top-1/2 hidden h-[76%] max-h-[430px] w-[28%] min-w-[220px] max-w-[320px] -translate-y-1/2 items-center justify-center md:flex'>
+                          <ProxyImage
+                            originalSrc={imageUrl}
+                            alt=''
+                            aria-hidden='true'
+                            className='h-full w-auto max-w-full rounded-2xl object-cover shadow-[0_28px_70px_rgba(0,0,0,0.55)] ring-1 ring-white/20'
+                            loading={index === 0 ? 'eager' : 'lazy'}
+                          />
+                        </div>
+                      </>
+                    ) : (
                       <ProxyImage
                         originalSrc={imageUrl}
-                        alt=''
-                        aria-hidden='true'
-                        className='absolute inset-0 h-full w-full scale-110 object-cover opacity-45 blur-2xl'
+                        alt={item.title}
+                        className='absolute inset-0 h-full w-full object-cover'
                         loading={index === 0 ? 'eager' : 'lazy'}
                       />
                     )}
-                    <ProxyImage
-                      originalSrc={imageUrl}
-                      alt={item.title}
-                      className={`absolute inset-0 h-full w-full ${
-                        containImage ? 'object-contain' : 'object-cover'
-                      }`}
-                      loading={index === 0 ? 'eager' : 'lazy'}
-                    />
                   </>
                 );
               })()

@@ -31,3 +31,17 @@ export function getSavedHomeBannerHeightScale(
 export function isPosterLikeBannerImageUrl(url: string): boolean {
   return /(?:^|\/)(?:m|s)_ratio_poster(?:\/|$)/i.test(url);
 }
+
+export type BannerImagePresentation = 'cover' | 'desktop-poster-card';
+
+export function getBannerImagePresentation(
+  imageUrl: string,
+  isMobileView: boolean,
+  hasBackdrop = true
+): BannerImagePresentation {
+  return imageUrl &&
+    !isMobileView &&
+    (!hasBackdrop || isPosterLikeBannerImageUrl(imageUrl))
+    ? 'desktop-poster-card'
+    : 'cover';
+}

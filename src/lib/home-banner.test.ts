@@ -1,4 +1,5 @@
 import {
+  getBannerImagePresentation,
   getDefaultHomeBannerHeightScale,
   getSavedHomeBannerHeightScale,
   isPosterLikeBannerImageUrl,
@@ -41,5 +42,31 @@ describe('banner image shape detection', () => {
     expect(
       isPosterLikeBannerImageUrl('https://image.tmdb.org/t/p/original/abc.jpg')
     ).toBe(false);
+  });
+});
+
+describe('banner image presentation', () => {
+  const posterUrl =
+    'https://img.doubanio.cmliussss.com/view/photo/m_ratio_poster/public/p2932334501.jpg';
+  const landscapeUrl = 'https://image.tmdb.org/t/p/original/abc.jpg';
+
+  it('uses a desktop poster-card layout for poster-like banner images', () => {
+    expect(getBannerImagePresentation(posterUrl, false, true)).toBe(
+      'desktop-poster-card'
+    );
+  });
+
+  it('uses a desktop poster-card layout when only a poster image is available', () => {
+    expect(getBannerImagePresentation(landscapeUrl, false, false)).toBe(
+      'desktop-poster-card'
+    );
+  });
+
+  it('keeps mobile poster-like banner images as cover backgrounds', () => {
+    expect(getBannerImagePresentation(posterUrl, true, false)).toBe('cover');
+  });
+
+  it('keeps landscape banner images as cover backgrounds', () => {
+    expect(getBannerImagePresentation(landscapeUrl, false, true)).toBe('cover');
   });
 });

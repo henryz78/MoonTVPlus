@@ -91,6 +91,9 @@ describe('PlayStatsPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('最近观看最多')).toBeInTheDocument();
     expect(screen.getAllByText(/识骨寻踪第一季/).length).toBeGreaterThan(0);
+    expect(
+      screen.getByText('识骨寻踪第一季 · 第 1 集 · source')
+    ).toBeInTheDocument();
     expect(screen.getByText('已看 1 小时')).toBeInTheDocument();
     expect(screen.queryByText('用户排行')).not.toBeInTheDocument();
     expect(screen.queryByText('6 条 · 1 小时 30 分钟')).not.toBeInTheDocument();

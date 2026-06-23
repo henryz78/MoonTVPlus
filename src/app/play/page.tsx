@@ -53,6 +53,7 @@ import {
   buildEpisodeProgressContentKey,
   loadLocalEpisodeProgress,
   pruneLocalEpisodeProgressStorage,
+  rememberEpisodeProgressContentKeyForPlayRecord,
   saveLocalEpisodeProgress,
 } from '@/lib/episode-progress';
 import { RealWatchTimeTracker, reportWatchTime, WATCH_TIME_REPORT_INTERVAL_MS } from '@/lib/watch-time.client';
@@ -5116,6 +5117,10 @@ function PlayPageClient() {
           } else {
             await savePlayRecord(newSource, newId, migratedRecord);
           }
+          rememberEpisodeProgressContentKeyForPlayRecord(
+            generateStorageKey(newSource, newId),
+            newEpisodeProgressContentKey
+          );
         } catch (error) {
           console.warn('[Play] Failed to migrate source-switch play record:', error);
         }
@@ -6321,6 +6326,10 @@ function PlayPageClient() {
         save_time: Date.now(),
         search_title: searchTitle,
       });
+      rememberEpisodeProgressContentKeyForPlayRecord(
+        generateStorageKey(currentSourceRef.current, currentIdRef.current),
+        episodeProgressContentKey
+      );
 
       lastSavedPlayTimeRef.current = playTime;
       lastSaveTimeRef.current = Date.now();

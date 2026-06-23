@@ -15,6 +15,11 @@
  */
 
 import { getAuthInfoFromBrowserCookie, clearAuthCookie } from './auth';
+import {
+  clearAllLocalEpisodeProgressStorage,
+  clearLocalEpisodeProgressForPlayRecord,
+  clearLocalEpisodeProgressForPlayRecords,
+} from './episode-progress';
 import { normalizeEpisodeFilterConfig } from './episode-filter';
 import { MangaReadRecord, MangaShelfItem } from './manga.types';
 import { DanmakuFilterConfig, EpisodeFilterConfig, SkipConfig } from './types';
@@ -978,7 +983,9 @@ export async function deletePlayRecord(
   if (STORAGE_TYPE !== 'localstorage') {
     // 立即更新缓存
     const cachedRecords = cacheManager.getCachedPlayRecords() || {};
+    const removedRecord = cachedRecords[key];
     delete cachedRecords[key];
+    clearLocalEpisodeProgressForPlayRecord(key, removedRecord);
     cacheManager.cachePlayRecords(cachedRecords);
 
     // 触发立即更新事件
@@ -1009,7 +1016,9 @@ export async function deletePlayRecord(
 
   try {
     const allRecords = await getAllPlayRecords();
+    const removedRecord = allRecords[key];
     delete allRecords[key];
+    clearLocalEpisodeProgressForPlayRecord(key, removedRecord);
     localStorage.setItem(PLAY_RECORDS_KEY, JSON.stringify(allRecords));
     window.dispatchEvent(
       new CustomEvent('playRecordsUpdated', {
@@ -1034,9 +1043,13 @@ export async function deletePlayRecords(keys: string[]): Promise<void> {
   // 数据库存储模式：一次性乐观更新 + 一次 API 请求
   if (STORAGE_TYPE !== 'localstorage') {
     const cachedRecords = cacheManager.getCachedPlayRecords() || {};
+    const removedRecords = Object.fromEntries(
+      uniqueKeys.map((key) => [key, cachedRecords[key]])
+    );
     uniqueKeys.forEach((key) => {
       delete cachedRecords[key];
     });
+    clearLocalEpisodeProgressForPlayRecords(removedRecords);
     cacheManager.cachePlayRecords(cachedRecords);
 
     window.dispatchEvent(
@@ -1067,9 +1080,13 @@ export async function deletePlayRecords(keys: string[]): Promise<void> {
 
   try {
     const allRecords = await getAllPlayRecords();
+    const removedRecords = Object.fromEntries(
+      uniqueKeys.map((key) => [key, allRecords[key]])
+    );
     uniqueKeys.forEach((key) => {
       delete allRecords[key];
     });
+    clearLocalEpisodeProgressForPlayRecords(removedRecords);
     localStorage.setItem(PLAY_RECORDS_KEY, JSON.stringify(allRecords));
     window.dispatchEvent(
       new CustomEvent('playRecordsUpdated', {
@@ -1654,6 +1671,7 @@ export async function clearAllPlayRecords(): Promise<void> {
   if (STORAGE_TYPE !== 'localstorage') {
     // 立即更新缓存
     cacheManager.cachePlayRecords({});
+    clearAllLocalEpisodeProgressStorage();
 
     // 触发立即更新事件
     window.dispatchEvent(
@@ -1679,6 +1697,7 @@ export async function clearAllPlayRecords(): Promise<void> {
   // localStorage 模式
   if (typeof window === 'undefined') return;
   localStorage.removeItem(PLAY_RECORDS_KEY);
+  clearAllLocalEpisodeProgressStorage();
   window.dispatchEvent(
     new CustomEvent('playRecordsUpdated', {
       detail: {},

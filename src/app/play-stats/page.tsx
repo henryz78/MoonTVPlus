@@ -201,7 +201,7 @@ function RecentRecordsSection({
                 className={`grid ${desktopGrid} gap-3 border-b border-gray-100 px-3 py-3 text-sm last:border-b-0 dark:border-gray-800`}
               >
                 <span className='min-w-0 truncate text-gray-900 dark:text-gray-100'>
-                  {record.title} · 第 {record.episode} 集
+                  {record.title} · 第 {record.episode} 集 · {record.sourceName}
                 </span>
                 {showUsername && (
                   <span className='truncate text-gray-600 dark:text-gray-300'>

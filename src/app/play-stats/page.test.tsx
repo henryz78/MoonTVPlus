@@ -114,7 +114,7 @@ describe('PlayStatsPage', () => {
     expect(screen.getByText('1. 识骨寻踪第一季')).toHaveClass('break-words');
   });
 
-  it('shows seconds for short watch durations', async () => {
+  it('rounds short watch durations to minutes', async () => {
     window.fetch = jest.fn(async () => ({
       ok: true,
       json: async () => ({
@@ -140,9 +140,9 @@ describe('PlayStatsPage', () => {
 
     render(<PlayStatsPage />);
 
-    expect(await screen.findByText('1 分钟 35 秒')).toBeInTheDocument();
+    expect(await screen.findByText('1 分钟')).toBeInTheDocument();
     expect(
-      screen.getByText('今日 1 分钟 35 秒 · 近 7 天 1 分钟 35 秒')
+      screen.getByText('今日 1 分钟 · 近 7 天 1 分钟')
     ).toBeInTheDocument();
   });
 

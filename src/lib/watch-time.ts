@@ -57,6 +57,12 @@ export interface WatchTimeRange {
   endAt: number;
 }
 
+export interface CurrentWeekWatchTime {
+  watchSeconds: number;
+  weekStartAt: number;
+  weekEndAt: number;
+}
+
 function cleanString(value: unknown, fallback = '') {
   return typeof value === 'string' ? value.trim() : fallback;
 }
@@ -193,6 +199,37 @@ export async function getUserWatchSeconds(
     (total, entry) => total + getWatchTimeEntrySeconds(entry, range),
     0
   );
+}
+
+export function getCurrentWeekRange(now = Date.now()): WatchTimeRange {
+  const current = new Date(now);
+  const currentMidnight = new Date(
+    current.getFullYear(),
+    current.getMonth(),
+    current.getDate()
+  );
+  const daysSinceMonday = (currentMidnight.getDay() + 6) % 7;
+  const currentMonday = new Date(currentMidnight);
+  currentMonday.setDate(currentMonday.getDate() - daysSinceMonday);
+
+  return {
+    startAt: currentMonday.getTime(),
+    endAt: now,
+  };
+}
+
+export async function getCurrentWeekWatchTime(
+  username: string,
+  now = Date.now()
+): Promise<CurrentWeekWatchTime> {
+  const range = getCurrentWeekRange(now);
+  const watchSeconds = await getUserWatchSeconds(username, range);
+
+  return {
+    watchSeconds,
+    weekStartAt: range.startAt,
+    weekEndAt: range.endAt,
+  };
 }
 
 export async function recordWatchTime(

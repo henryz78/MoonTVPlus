@@ -111,8 +111,9 @@ describe('UserActivityPage', () => {
     expect(await screen.findByText('alice')).toBeInTheDocument();
     expect(screen.getByTitle('普通头像')).toHaveTextContent('B');
     expect(screen.getByText('3 小时前在线')).toBeInTheDocument();
-    expect(screen.getByText('本周观影者')).toBeInTheDocument();
-    expect(screen.getByText('周榜季军')).toBeInTheDocument();
+    expect(screen.getByTestId('user-activity-meta-alice')).toHaveTextContent(
+      '用户周榜季军本周观影者'
+    );
     expect(screen.getByText('沙丘 · 第 1 集 · 50%')).toBeInTheDocument();
 
     fireEvent.click(screen.getAllByRole('button', { name: '查看详情' })[0]);

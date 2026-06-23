@@ -1,5 +1,6 @@
 import { db } from './db';
 import {
+  getCurrentWeekWatchTime,
   getUserWatchSeconds,
   getWatchTimeUserKey,
   getWatchTimeEntries,
@@ -167,5 +168,44 @@ describe('watch time ledger', () => {
         endAt: new Date('2026-06-22T00:00:00').getTime() - 1,
       })
     ).resolves.toBe(4200);
+  });
+
+  it('returns the authenticated user current-week watch seconds', async () => {
+    (db.getGlobalValue as jest.Mock).mockResolvedValue(
+      JSON.stringify({
+        version: 1,
+        updatedAt: NOW,
+        entries: {
+          'source+movie:1': {
+            key: 'source+movie:1',
+            source: 'source',
+            id: 'movie',
+            title: '沙丘',
+            sourceName: '测试源',
+            cover: '',
+            year: '',
+            episode: 1,
+            totalEpisodes: 1,
+            totalTime: 7200,
+            progressTime: 3600,
+            watchSeconds: 11_400,
+            dailySeconds: {
+              '2026-06-14': 7200,
+              '2026-06-15': 1800,
+              '2026-06-18': 3600,
+            },
+            firstWatchedAt: NOW,
+            lastWatchedAt: NOW,
+            lastReportedAt: NOW,
+          },
+        },
+      })
+    );
+
+    await expect(getCurrentWeekWatchTime('alice', NOW)).resolves.toEqual({
+      watchSeconds: 5400,
+      weekStartAt: new Date('2026-06-15T00:00:00').getTime(),
+      weekEndAt: NOW,
+    });
   });
 });

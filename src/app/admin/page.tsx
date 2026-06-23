@@ -17431,20 +17431,6 @@ function AdminPageClient() {
             <SiteConfigComponent config={config} refreshConfig={fetchConfig} />
           </CollapsibleTab>
 
-          <CollapsibleTab
-            title='观影室配置'
-            icon={
-              <Monitor size={20} className='text-gray-600 dark:text-gray-400' />
-            }
-            isExpanded={expandedTabs.watchRoomConfig}
-            onToggle={() => toggleTab('watchRoomConfig')}
-          >
-            <WatchRoomConfigComponent
-              config={config}
-              refreshConfig={fetchConfig}
-            />
-          </CollapsibleTab>
-
           {/* 注册配置标签 */}
           <CollapsibleTab
             title='注册配置'
@@ -17607,6 +17593,23 @@ function AdminPageClient() {
               onToggle={() => toggleTab('webLive')}
             >
               <WebLiveConfig config={config} refreshConfig={fetchConfig} />
+            </CollapsibleTab>
+
+            <CollapsibleTab
+              title='观影室配置'
+              icon={
+                <Monitor
+                  size={20}
+                  className='text-gray-600 dark:text-gray-400'
+                />
+              }
+              isExpanded={expandedTabs.watchRoomConfig}
+              onToggle={() => toggleTab('watchRoomConfig')}
+            >
+              <WatchRoomConfigComponent
+                config={config}
+                refreshConfig={fetchConfig}
+              />
             </CollapsibleTab>
 
             {/* 私人影库大类 */}

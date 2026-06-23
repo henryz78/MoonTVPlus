@@ -80,6 +80,12 @@ interface CurrentWatchReward {
   watchSeconds: number;
 }
 
+interface CurrentWeekWatchTime {
+  watchSeconds: number;
+  weekStartAt: number;
+  weekEndAt: number;
+}
+
 export const UserMenu: React.FC = () => {
   const router = useRouter();
   const { updateStatus, isChecking } = useVersionCheck();
@@ -108,6 +114,9 @@ export const UserMenu: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [currentWatchReward, setCurrentWatchReward] =
     useState<CurrentWatchReward | null>(null);
+  const [currentWeekWatchSeconds, setCurrentWeekWatchSeconds] = useState<
+    number | null
+  >(null);
 
   // 订阅相关状态
   const [subscribeEnabled, setSubscribeEnabled] = useState(false);
@@ -644,6 +653,37 @@ export const UserMenu: React.FC = () => {
       cancelled = true;
     };
   }, [authInfo?.username, storageType]);
+
+  const loadCurrentWeekWatchTime = useCallback(async () => {
+    if (storageType === 'localstorage' || !authInfo?.username) {
+      setCurrentWeekWatchSeconds(null);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/watch-time/current-week', {
+        cache: 'no-store',
+      });
+      if (!response.ok) return;
+      const data = (await response.json()) as CurrentWeekWatchTime;
+      const seconds = Number(data.watchSeconds);
+      setCurrentWeekWatchSeconds(
+        Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0
+      );
+    } catch (error) {
+      console.error('加载本周观影时长失败:', error);
+    }
+  }, [authInfo?.username, storageType]);
+
+  useEffect(() => {
+    void loadCurrentWeekWatchTime();
+  }, [loadCurrentWeekWatchTime]);
+
+  useEffect(() => {
+    if (isOpen) {
+      void loadCurrentWeekWatchTime();
+    }
+  }, [isOpen, loadCurrentWeekWatchTime]);
 
   // 从 localStorage 读取设置
   useEffect(() => {
@@ -2257,6 +2297,19 @@ export const UserMenu: React.FC = () => {
     }
   };
 
+  const formatWatchDuration = (seconds: number | null | undefined) => {
+    const safeSeconds = Math.max(0, Math.floor(seconds || 0));
+    if (safeSeconds > 0 && safeSeconds < 60) return '1 分钟';
+
+    const totalMinutes = Math.floor(safeSeconds / 60);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+
+    if (hours <= 0) return `${totalMinutes} 分钟`;
+    if (minutes === 0) return `${hours} 小时`;
+    return `${hours} 小时 ${minutes} 分钟`;
+  };
+
   const currentUsername = authInfo?.username || 'default';
   const currentRole = authInfo?.role || 'user';
   const currentRoleText = getRoleText(currentRole);
@@ -2330,6 +2383,14 @@ export const UserMenu: React.FC = () => {
               </div>
             </div>
           </div>
+          {storageType !== 'localstorage' && (
+            <div className='mt-2 flex items-center justify-between rounded-md bg-white/75 px-2 py-1 text-[11px] text-gray-500 shadow-sm ring-1 ring-gray-200/70 dark:bg-gray-900/45 dark:text-gray-400 dark:ring-gray-700/60'>
+              <span>本周已看</span>
+              <span className='font-semibold text-gray-800 dark:text-gray-100'>
+                {formatWatchDuration(currentWeekWatchSeconds)}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* 菜单项 */}

@@ -277,28 +277,29 @@ export default function UserActivityPage() {
                         />
                         <span className='truncate'>{user.username}</span>
                       </div>
-                      <div className='mt-1 text-xs text-gray-500'>
-                        {roleText[user.role]}
-                        {user.banned ? ' · 已封禁' : ''}
+                      <div
+                        data-testid={`user-activity-meta-${user.username}`}
+                        className='mt-1 flex min-w-0 flex-wrap items-center gap-1 text-xs text-gray-500'
+                      >
+                        <span>
+                          {roleText[user.role]}
+                          {user.banned ? ' · 已封禁' : ''}
+                        </span>
+                        {user.currentRankTitle && (
+                          <span
+                            className={`max-w-full truncate rounded-full px-2 py-0.5 text-[11px] font-medium ${rankTitleClass(
+                              user.currentRankTitle
+                            )}`}
+                          >
+                            {user.currentRankTitle}
+                          </span>
+                        )}
+                        {user.currentReward && (
+                          <span className='max-w-full truncate rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-200'>
+                            {user.currentReward.title}
+                          </span>
+                        )}
                       </div>
-                      {(user.currentRankTitle || user.currentReward) && (
-                        <div className='mt-1 flex min-w-0 flex-wrap gap-1'>
-                          {user.currentRankTitle && (
-                            <span
-                              className={`max-w-full truncate rounded-full px-2 py-0.5 text-[11px] font-medium ${rankTitleClass(
-                                user.currentRankTitle
-                              )}`}
-                            >
-                              {user.currentRankTitle}
-                            </span>
-                          )}
-                          {user.currentReward && (
-                            <span className='max-w-full truncate rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-200'>
-                              {user.currentReward.title}
-                            </span>
-                          )}
-                        </div>
-                      )}
                     </div>
                     <span
                       className={

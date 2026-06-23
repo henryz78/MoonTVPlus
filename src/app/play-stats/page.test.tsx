@@ -114,6 +114,38 @@ describe('PlayStatsPage', () => {
     expect(screen.getByText('1. 识骨寻踪第一季')).toHaveClass('break-words');
   });
 
+  it('shows seconds for short watch durations', async () => {
+    window.fetch = jest.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        viewerRole: 'user',
+        totalPlayRecords: 1,
+        totalWatchSeconds: 95,
+        todayPlayRecords: 1,
+        last7DaysPlayRecords: 1,
+        todayWatchSeconds: 95,
+        last7DaysWatchSeconds: 95,
+        lastWatchAt: NOW - 30_000,
+        latestRecord: {
+          title: '短片',
+          episode: 1,
+          sourceName: 'source',
+          progressPercent: 10,
+          watchSeconds: 95,
+          saveTime: NOW - 30_000,
+        },
+        recentRecords: [],
+      }),
+    })) as jest.Mock;
+
+    render(<PlayStatsPage />);
+
+    expect(await screen.findByText('1 分钟 35 秒')).toBeInTheDocument();
+    expect(
+      screen.getByText('今日 1 分钟 35 秒 · 近 7 天 1 分钟 35 秒')
+    ).toBeInTheDocument();
+  });
+
   it('uses neutral copy while stats are loading', () => {
     window.fetch = jest.fn(
       () => new Promise<Response>(() => undefined)

@@ -55,7 +55,7 @@ import {
   pruneLocalEpisodeProgressStorage,
   saveLocalEpisodeProgress,
 } from '@/lib/episode-progress';
-import { RealWatchTimeTracker, reportWatchTime } from '@/lib/watch-time.client';
+import { RealWatchTimeTracker, reportWatchTime, WATCH_TIME_REPORT_INTERVAL_MS } from '@/lib/watch-time.client';
 import { isNetdiskSource, normalizeNetdiskSource } from '@/lib/netdisk/source';
 import {
   getRecommendationCache,
@@ -6362,11 +6362,15 @@ function PlayPageClient() {
     // 添加事件监听器
     window.addEventListener('beforeunload', handleBeforeUnload);
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    const watchTimeInterval = window.setInterval(() => {
+      flushWatchTime(false);
+    }, WATCH_TIME_REPORT_INTERVAL_MS);
 
     return () => {
       // 清理事件监听器
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.clearInterval(watchTimeInterval);
     };
   }, [currentEpisodeIndex, detail]);
 

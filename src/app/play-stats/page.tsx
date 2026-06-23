@@ -76,14 +76,19 @@ function formatDateTime(timestamp: number | null) {
 }
 
 function formatWatchDuration(seconds: number | null | undefined) {
-  const safeSeconds = Math.max(0, seconds || 0);
-  if (safeSeconds > 0 && safeSeconds < 60) return '1 分钟';
+  const safeSeconds = Math.max(0, Math.floor(seconds || 0));
+  if (safeSeconds <= 0) return '0 分钟';
+  if (safeSeconds < 60) return `${safeSeconds} 秒`;
 
   const totalMinutes = Math.floor(safeSeconds / 60);
+  const secondsPart = safeSeconds % 60;
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
 
-  if (hours <= 0) return `${totalMinutes} 分钟`;
+  if (hours <= 0) {
+    if (secondsPart === 0) return `${totalMinutes} 分钟`;
+    return `${totalMinutes} 分钟 ${secondsPart} 秒`;
+  }
   if (minutes === 0) return `${hours} 小时`;
   return `${hours} 小时 ${minutes} 分钟`;
 }

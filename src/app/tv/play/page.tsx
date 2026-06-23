@@ -54,7 +54,11 @@ import {
 } from '@/lib/db.client';
 import { loadTVPlayerUpDownAction } from '@/lib/tv-preferences';
 import { SearchResult } from '@/lib/types';
-import { RealWatchTimeTracker, reportWatchTime } from '@/lib/watch-time.client';
+import {
+  RealWatchTimeTracker,
+  reportWatchTime,
+  WATCH_TIME_REPORT_INTERVAL_MS,
+} from '@/lib/watch-time.client';
 
 import TVNativeVideo from '@/components/tv/player/TVNativeVideo';
 import {
@@ -870,12 +874,17 @@ function TVPlayClient() {
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('beforeunload', handleBeforeUnload);
+    const watchTimeInterval = window.setInterval(() => {
+      flushWatchTime(false);
+    }, WATCH_TIME_REPORT_INTERVAL_MS);
+
     return () => {
       flushWatchTime(true);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.clearInterval(watchTimeInterval);
     };
-  }, [detail?.source, detail?.id, episodeIndex]);
+  }, [detail?.source, detail?.id, episodeIndex, isPlaying]);
 
   useEffect(() => {
     if (!detail) return;

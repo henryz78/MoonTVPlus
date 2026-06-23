@@ -11,6 +11,7 @@ export interface WatchTimeTrackerState {
 const MIN_PLAYBACK_RATE = 0.5;
 const MAX_PLAYBACK_RATE = 2;
 const MAX_TICK_SECONDS = 60;
+export const WATCH_TIME_REPORT_INTERVAL_MS = 15_000;
 
 function canCount(state: WatchTimeTrackerState) {
   return (

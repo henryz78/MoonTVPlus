@@ -1,3 +1,5 @@
+import { fetchWithAuth } from './db.client';
+
 export interface WatchTimeTrackerState {
   now: number;
   position: number;
@@ -78,7 +80,7 @@ export async function reportWatchTime(input: {
 }) {
   if (input.deltaSeconds <= 0) return;
 
-  await fetch('/api/watch-time', {
+  await fetchWithAuth('/api/watch-time', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),

@@ -1,4 +1,9 @@
-import { RealWatchTimeTracker } from './watch-time.client';
+import { fetchWithAuth } from './db.client';
+import { RealWatchTimeTracker, reportWatchTime } from './watch-time.client';
+
+jest.mock('./db.client', () => ({
+  fetchWithAuth: jest.fn(),
+}));
 
 describe('RealWatchTimeTracker', () => {
   it('counts visible playing wall-clock seconds', () => {
@@ -82,5 +87,42 @@ describe('RealWatchTimeTracker', () => {
         playbackRate: 1,
       })
     ).toBe(0);
+  });
+});
+
+describe('reportWatchTime', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (fetchWithAuth as jest.Mock).mockResolvedValue({ ok: true });
+  });
+
+  it('uses the auth-aware fetch path so expired tokens can be refreshed', async () => {
+    await reportWatchTime({
+      source: 'source',
+      id: 'movie',
+      title: '沙丘',
+      sourceName: '测试源',
+      episode: 1,
+      totalEpisodes: 1,
+      totalTime: 7200,
+      progressTime: 30,
+      deltaSeconds: 15,
+    });
+
+    expect(fetchWithAuth).toHaveBeenCalledWith('/api/watch-time', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        source: 'source',
+        id: 'movie',
+        title: '沙丘',
+        sourceName: '测试源',
+        episode: 1,
+        totalEpisodes: 1,
+        totalTime: 7200,
+        progressTime: 30,
+        deltaSeconds: 15,
+      }),
+    });
   });
 });

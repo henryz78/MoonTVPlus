@@ -58,8 +58,7 @@ import {
 } from '@/lib/episode-progress';
 import {
   RealWatchTimeTracker,
-  getUnacceptedWatchSeconds,
-  reportWatchTime,
+  WatchTimeReportQueue,
   WATCH_TIME_REPORT_INTERVAL_MS,
 } from '@/lib/watch-time.client';
 import { isNetdiskSource, normalizeNetdiskSource } from '@/lib/netdisk/source';
@@ -1917,6 +1916,7 @@ function PlayPageClient() {
   const lastSaveTimeRef = useRef<number>(0);
   const lastSavedPlayTimeRef = useRef<number | null>(null);
   const watchTimeTrackerRef = useRef(new RealWatchTimeTracker());
+  const watchTimeReportQueueRef = useRef(new WatchTimeReportQueue());
   const watchTimeBufferedSecondsRef = useRef(0);
 
   // 下集预缓存相关
@@ -5193,6 +5193,8 @@ function PlayPageClient() {
   };
 
   const prepareEpisodeSwitch = () => {
+    flushWatchTime(true);
+
     if (artPlayerRef.current) {
       lastPlaybackRateRef.current =
         artPlayerRef.current.playbackRate || lastPlaybackRateRef.current;
@@ -6240,8 +6242,18 @@ function PlayPageClient() {
   };
 
   const flushWatchTime = (force = false) => {
+    const flushQueue = () => {
+      if (force) {
+        void watchTimeReportQueueRef.current.flushAll();
+      } else {
+        void watchTimeReportQueueRef.current.flushNext();
+      }
+    };
     const state = getCurrentWatchTimeState();
-    if (!state) return;
+    if (!state) {
+      flushQueue();
+      return;
+    }
 
     const delta = watchTimeTrackerRef.current.tick(state);
     if (delta > 0) {
@@ -6249,11 +6261,15 @@ function PlayPageClient() {
     }
 
     if (!force && watchTimeBufferedSecondsRef.current < 15) {
+      flushQueue();
       return;
     }
 
     const deltaSeconds = watchTimeBufferedSecondsRef.current;
-    if (deltaSeconds <= 0) return;
+    if (deltaSeconds <= 0) {
+      flushQueue();
+      return;
+    }
 
     const detail = detailRef.current;
     if (
@@ -6263,11 +6279,12 @@ function PlayPageClient() {
       !videoTitleRef.current ||
       !detail.source_name
     ) {
+      flushQueue();
       return;
     }
 
     watchTimeBufferedSecondsRef.current = 0;
-    reportWatchTime({
+    watchTimeReportQueueRef.current.enqueue({
       source: currentSourceRef.current,
       id: currentIdRef.current,
       title: videoTitleRef.current,
@@ -6279,20 +6296,8 @@ function PlayPageClient() {
       totalTime: Math.floor(artPlayerRef.current?.duration || 0),
       progressTime: Math.floor(artPlayerRef.current?.currentTime || 0),
       deltaSeconds,
-    })
-      .then((result) => {
-        const unacceptedSeconds = getUnacceptedWatchSeconds(
-          deltaSeconds,
-          result?.acceptedSeconds
-        );
-        if (unacceptedSeconds > 0) {
-          watchTimeBufferedSecondsRef.current += unacceptedSeconds;
-        }
-      })
-      .catch((error) => {
-        watchTimeBufferedSecondsRef.current += deltaSeconds;
-        console.warn('[WatchTime] 上报观看时长失败:', error);
-      });
+    });
+    flushQueue();
   };
 
   // 保存播放进度
@@ -6392,6 +6397,7 @@ function PlayPageClient() {
 
     return () => {
       // 清理事件监听器
+      flushWatchTime(true);
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.clearInterval(watchTimeInterval);

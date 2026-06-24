@@ -1,6 +1,7 @@
 import { fetchWithAuth } from './db.client';
 import {
   RealWatchTimeTracker,
+  WatchTimeReportQueue,
   getUnacceptedWatchSeconds,
   reportWatchTime,
 } from './watch-time.client';
@@ -122,7 +123,10 @@ describe('RealWatchTimeTracker', () => {
 describe('reportWatchTime', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (fetchWithAuth as jest.Mock).mockResolvedValue({ ok: true });
+    (fetchWithAuth as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({ acceptedSeconds: 15, totalWatchSeconds: 15 }),
+    });
   });
 
   it('uses the auth-aware fetch path so expired tokens can be refreshed', async () => {
@@ -176,6 +180,27 @@ describe('reportWatchTime', () => {
       })
     ).rejects.toThrow('Internal Server Error');
   });
+
+  it('throws when a successful response does not include accepted seconds', async () => {
+    (fetchWithAuth as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+    });
+
+    await expect(
+      reportWatchTime({
+        source: 'source',
+        id: 'movie',
+        title: '沙丘',
+        sourceName: '测试源',
+        episode: 1,
+        totalEpisodes: 1,
+        totalTime: 7200,
+        progressTime: 30,
+        deltaSeconds: 15,
+      })
+    ).rejects.toThrow('Invalid watch time response');
+  });
 });
 
 describe('getUnacceptedWatchSeconds', () => {
@@ -183,5 +208,166 @@ describe('getUnacceptedWatchSeconds', () => {
     expect(getUnacceptedWatchSeconds(45, 20)).toBe(25);
     expect(getUnacceptedWatchSeconds(45, 45)).toBe(0);
     expect(getUnacceptedWatchSeconds(45, undefined)).toBe(0);
+  });
+});
+
+describe('WatchTimeReportQueue', () => {
+  const makeReport = (
+    input: Partial<Parameters<WatchTimeReportQueue['enqueue']>[0]> = {}
+  ) => ({
+    source: input.source || 'source',
+    id: input.id || 'movie',
+    title: input.title || '沙丘',
+    sourceName: input.sourceName || '测试源',
+    episode: input.episode || 1,
+    totalEpisodes: input.totalEpisodes || 1,
+    totalTime: input.totalTime || 7200,
+    progressTime: input.progressTime || 30,
+    deltaSeconds: input.deltaSeconds || 15,
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('retries unaccepted seconds with the original report identity first', async () => {
+    (fetchWithAuth as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ acceptedSeconds: 20, totalWatchSeconds: 20 }),
+      })
+      .mockResolvedValue({
+        ok: true,
+        json: async () => ({ acceptedSeconds: 999, totalWatchSeconds: 999 }),
+      });
+
+    const queue = new WatchTimeReportQueue();
+    queue.enqueue(
+      makeReport({ id: 'old-movie', episode: 1, deltaSeconds: 45 })
+    );
+    await queue.flushNext();
+
+    queue.enqueue(
+      makeReport({ id: 'new-movie', episode: 2, deltaSeconds: 10 })
+    );
+    await queue.flushNext();
+    await queue.flushNext();
+
+    const sentBodies = (fetchWithAuth as jest.Mock).mock.calls.map((call) =>
+      JSON.parse(call[1].body)
+    );
+
+    expect(sentBodies).toEqual([
+      expect.objectContaining({
+        id: 'old-movie',
+        episode: 1,
+        deltaSeconds: 45,
+      }),
+      expect.objectContaining({
+        id: 'old-movie',
+        episode: 1,
+        deltaSeconds: 25,
+      }),
+      expect.objectContaining({
+        id: 'new-movie',
+        episode: 2,
+        deltaSeconds: 10,
+      }),
+    ]);
+  });
+
+  it('keeps the original report queued when the API response is invalid', async () => {
+    (fetchWithAuth as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({}),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ acceptedSeconds: 15, totalWatchSeconds: 15 }),
+      });
+
+    const queue = new WatchTimeReportQueue();
+    queue.enqueue(makeReport({ id: 'movie', deltaSeconds: 15 }));
+
+    await queue.flushNext();
+    await queue.flushNext();
+
+    const sentBodies = (fetchWithAuth as jest.Mock).mock.calls.map((call) =>
+      JSON.parse(call[1].body)
+    );
+
+    expect(sentBodies).toEqual([
+      expect.objectContaining({ id: 'movie', deltaSeconds: 15 }),
+      expect.objectContaining({ id: 'movie', deltaSeconds: 15 }),
+    ]);
+  });
+
+  it('flushes later queued reports during forced cleanup even when the first report must retry', async () => {
+    (fetchWithAuth as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({}),
+      })
+      .mockResolvedValue({
+        ok: true,
+        json: async () => ({ acceptedSeconds: 15, totalWatchSeconds: 15 }),
+      });
+
+    const queue = new WatchTimeReportQueue();
+    queue.enqueue(makeReport({ id: 'old-movie', deltaSeconds: 15 }));
+    queue.enqueue(makeReport({ id: 'new-movie', deltaSeconds: 15 }));
+
+    await queue.flushAll();
+    await queue.flushNext();
+
+    const sentBodies = (fetchWithAuth as jest.Mock).mock.calls.map((call) =>
+      JSON.parse(call[1].body)
+    );
+
+    expect(sentBodies).toEqual([
+      expect.objectContaining({ id: 'old-movie', deltaSeconds: 15 }),
+      expect.objectContaining({ id: 'new-movie', deltaSeconds: 15 }),
+      expect.objectContaining({ id: 'old-movie', deltaSeconds: 15 }),
+    ]);
+  });
+
+  it('drains queued reports after the current in-flight report finishes', async () => {
+    let resolveFirstResponse: (value: unknown) => void = () => undefined;
+    const firstResponse = new Promise((resolve) => {
+      resolveFirstResponse = resolve;
+    });
+    (fetchWithAuth as jest.Mock)
+      .mockReturnValueOnce(firstResponse)
+      .mockResolvedValue({
+        ok: true,
+        json: async () => ({ acceptedSeconds: 15, totalWatchSeconds: 15 }),
+      });
+
+    const queue = new WatchTimeReportQueue();
+    queue.enqueue(makeReport({ id: 'old-movie', deltaSeconds: 15 }));
+    queue.enqueue(makeReport({ id: 'new-movie', deltaSeconds: 15 }));
+
+    const firstFlush = queue.flushNext();
+    await Promise.resolve();
+    await queue.flushAll();
+
+    expect(fetchWithAuth).toHaveBeenCalledTimes(1);
+
+    resolveFirstResponse({
+      ok: true,
+      json: async () => ({ acceptedSeconds: 15, totalWatchSeconds: 15 }),
+    });
+    await firstFlush;
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const sentBodies = (fetchWithAuth as jest.Mock).mock.calls.map((call) =>
+      JSON.parse(call[1].body)
+    );
+
+    expect(sentBodies).toEqual([
+      expect.objectContaining({ id: 'old-movie', deltaSeconds: 15 }),
+      expect.objectContaining({ id: 'new-movie', deltaSeconds: 15 }),
+    ]);
   });
 });

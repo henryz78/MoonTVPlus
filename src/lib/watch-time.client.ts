@@ -72,8 +72,22 @@ export class RealWatchTimeTracker {
 }
 
 export interface WatchTimeReportResponse {
-  acceptedSeconds?: number;
+  acceptedSeconds: number;
   totalWatchSeconds?: number;
+}
+
+export interface WatchTimeReportInput {
+  source: string;
+  id: string;
+  title: string;
+  sourceName: string;
+  cover?: string;
+  year?: string;
+  episode: number;
+  totalEpisodes: number;
+  totalTime: number;
+  progressTime: number;
+  deltaSeconds: number;
 }
 
 export function getUnacceptedWatchSeconds(
@@ -87,19 +101,103 @@ export function getUnacceptedWatchSeconds(
   return Math.max(0, requested - accepted);
 }
 
-export async function reportWatchTime(input: {
-  source: string;
-  id: string;
-  title: string;
-  sourceName: string;
-  cover?: string;
-  year?: string;
-  episode: number;
-  totalEpisodes: number;
-  totalTime: number;
-  progressTime: number;
-  deltaSeconds: number;
-}): Promise<WatchTimeReportResponse | null> {
+function reportKey(
+  input: Pick<WatchTimeReportInput, 'source' | 'id' | 'episode'>
+) {
+  return `${input.source}\u0000${input.id}\u0000${input.episode}`;
+}
+
+export class WatchTimeReportQueue {
+  private reports: WatchTimeReportInput[] = [];
+  private inFlight = false;
+  private drainRequested = false;
+
+  enqueue(report: WatchTimeReportInput) {
+    if (report.deltaSeconds <= 0) return;
+
+    const key = reportKey(report);
+    const existing = this.reports.find((item) => reportKey(item) === key);
+    if (existing) {
+      const deltaSeconds = existing.deltaSeconds + report.deltaSeconds;
+      Object.assign(existing, report, { deltaSeconds });
+      return;
+    }
+
+    this.reports.push({ ...report });
+  }
+
+  async flushNext() {
+    if (this.inFlight) return;
+
+    const report = this.reports.shift();
+    if (!report) return;
+
+    this.inFlight = true;
+    try {
+      const retryReport = await this.getRetryReport(report);
+      if (retryReport) this.requeueFirst(retryReport);
+    } finally {
+      this.inFlight = false;
+      this.flushRequestedDrain();
+    }
+  }
+
+  async flushAll() {
+    if (this.inFlight) {
+      this.drainRequested = true;
+      return;
+    }
+
+    const pending = this.reports.splice(0);
+    if (!pending.length) return;
+
+    const retryReports: WatchTimeReportInput[] = [];
+    this.inFlight = true;
+    try {
+      for (const report of pending) {
+        const retryReport = await this.getRetryReport(report);
+        if (retryReport) retryReports.push(retryReport);
+      }
+    } finally {
+      this.reports = [...retryReports, ...this.reports];
+      this.inFlight = false;
+      this.flushRequestedDrain();
+    }
+  }
+
+  private requeueFirst(report: WatchTimeReportInput) {
+    if (report.deltaSeconds <= 0) return;
+    this.reports.unshift({ ...report });
+  }
+
+  private async getRetryReport(report: WatchTimeReportInput) {
+    try {
+      const result = await reportWatchTime(report);
+      const unacceptedSeconds = getUnacceptedWatchSeconds(
+        report.deltaSeconds,
+        result?.acceptedSeconds
+      );
+      if (unacceptedSeconds > 0) {
+        return { ...report, deltaSeconds: unacceptedSeconds };
+      }
+      return null;
+    } catch {
+      return report;
+    }
+  }
+
+  private flushRequestedDrain() {
+    if (!this.drainRequested) return;
+    this.drainRequested = false;
+    if (this.reports.length > 0) {
+      void this.flushAll();
+    }
+  }
+}
+
+export async function reportWatchTime(
+  input: WatchTimeReportInput
+): Promise<WatchTimeReportResponse | null> {
   if (input.deltaSeconds <= 0) return null;
 
   const response = await fetchWithAuth('/api/watch-time', {
@@ -119,9 +217,21 @@ export async function reportWatchTime(input: {
     throw new Error(message);
   }
 
+  let body: unknown;
   try {
-    return (await response.json()) as WatchTimeReportResponse;
+    body = await response.json();
   } catch {
-    return null;
+    throw new Error('Invalid watch time response');
   }
+
+  const acceptedSeconds = (body as Partial<WatchTimeReportResponse>)
+    ?.acceptedSeconds;
+  if (
+    typeof acceptedSeconds !== 'number' ||
+    !Number.isFinite(acceptedSeconds)
+  ) {
+    throw new Error('Invalid watch time response');
+  }
+
+  return body as WatchTimeReportResponse;
 }

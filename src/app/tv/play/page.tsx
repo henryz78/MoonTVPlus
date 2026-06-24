@@ -56,8 +56,7 @@ import { loadTVPlayerUpDownAction } from '@/lib/tv-preferences';
 import { SearchResult } from '@/lib/types';
 import {
   RealWatchTimeTracker,
-  getUnacceptedWatchSeconds,
-  reportWatchTime,
+  WatchTimeReportQueue,
   WATCH_TIME_REPORT_INTERVAL_MS,
 } from '@/lib/watch-time.client';
 
@@ -491,6 +490,7 @@ function TVPlayClient() {
   const [time, setTime] = useState({ current: 0, duration: 0 });
   const timeRef = useRef({ current: 0, duration: 0 });
   const watchTimeTrackerRef = useRef(new RealWatchTimeTracker());
+  const watchTimeReportQueueRef = useRef(new WatchTimeReportQueue());
   const watchTimeBufferedSecondsRef = useRef(0);
   const episodesPanelRef = useRef<HTMLElement | null>(null);
   const episodeButtonRefs = useRef<Record<number, HTMLButtonElement | null>>(
@@ -781,8 +781,18 @@ function TVPlayClient() {
   };
 
   const flushWatchTime = (force = false) => {
+    const flushQueue = () => {
+      if (force) {
+        void watchTimeReportQueueRef.current.flushAll();
+      } else {
+        void watchTimeReportQueueRef.current.flushNext();
+      }
+    };
     const state = getCurrentWatchTimeState();
-    if (!state) return;
+    if (!state) {
+      flushQueue();
+      return;
+    }
 
     const delta = watchTimeTrackerRef.current.tick(state);
     if (delta > 0) {
@@ -790,14 +800,18 @@ function TVPlayClient() {
     }
 
     if (!force && watchTimeBufferedSecondsRef.current < 15) {
+      flushQueue();
       return;
     }
 
     const deltaSeconds = watchTimeBufferedSecondsRef.current;
-    if (deltaSeconds <= 0 || !detail?.source || !detail.id) return;
+    if (deltaSeconds <= 0 || !detail?.source || !detail.id) {
+      flushQueue();
+      return;
+    }
 
     watchTimeBufferedSecondsRef.current = 0;
-    reportWatchTime({
+    watchTimeReportQueueRef.current.enqueue({
       source: detail.source,
       id: detail.id,
       title: detail.title,
@@ -809,20 +823,8 @@ function TVPlayClient() {
       totalTime: Math.floor(timeRef.current.duration || 0),
       progressTime: Math.floor(timeRef.current.current || 0),
       deltaSeconds,
-    })
-      .then((result) => {
-        const unacceptedSeconds = getUnacceptedWatchSeconds(
-          deltaSeconds,
-          result?.acceptedSeconds
-        );
-        if (unacceptedSeconds > 0) {
-          watchTimeBufferedSecondsRef.current += unacceptedSeconds;
-        }
-      })
-      .catch((error) => {
-        watchTimeBufferedSecondsRef.current += deltaSeconds;
-        console.warn('[WatchTime] TV 上报观看时长失败:', error);
-      });
+    });
+    flushQueue();
   };
 
   const onTime = useCallback(

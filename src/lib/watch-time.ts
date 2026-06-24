@@ -1,4 +1,5 @@
 import { db } from './db';
+import { lockManager } from './lock';
 import { getWatchTimeUserKey } from './watch-time-keys';
 
 const WATCH_TIME_VERSION = 1;
@@ -164,21 +165,23 @@ export function getWatchTimeEntrySeconds(
 function allowedSeconds(
   requestedSeconds: number,
   previous: WatchTimeEntry | undefined,
-  now: number
+  now: number,
+  hasWatchHistory: boolean
 ) {
   const requested = cleanPositiveInt(requestedSeconds);
   if (requested <= 0) return 0;
 
-  const reportMaxSeconds = previous
-    ? MAX_REPORT_DELTA_SECONDS
-    : INITIAL_REPORT_MAX_SECONDS;
+  const isInitialCatchUp = !previous && !hasWatchHistory;
+  const reportMaxSeconds = isInitialCatchUp
+    ? INITIAL_REPORT_MAX_SECONDS
+    : MAX_REPORT_DELTA_SECONDS;
   const elapsedBound = previous?.lastReportedAt
     ? Math.max(
         0,
         Math.floor((now - previous.lastReportedAt) / 1000) +
           REPORT_GRACE_SECONDS
       )
-    : INITIAL_REPORT_MAX_SECONDS;
+    : reportMaxSeconds;
 
   return Math.min(requested, reportMaxSeconds, elapsedBound);
 }
@@ -250,44 +253,55 @@ export async function recordWatchTime(
     throw new Error('Invalid watch time report');
   }
 
-  const ledger = await getWatchTimeLedger(input.username);
-  const key = entryKey({ source, id, episode });
-  const previous = ledger.entries[key];
-  const acceptedSeconds = allowedSeconds(input.deltaSeconds, previous, now);
-  const day = dateKey(now);
+  const release = await lockManager.acquire(`watch-time:${input.username}`);
+  try {
+    const ledger = await getWatchTimeLedger(input.username);
+    const key = entryKey({ source, id, episode });
+    const previous = ledger.entries[key];
+    const hasWatchHistory = Object.keys(ledger.entries).length > 0;
+    const acceptedSeconds = allowedSeconds(
+      input.deltaSeconds,
+      previous,
+      now,
+      hasWatchHistory
+    );
+    const day = dateKey(now);
 
-  const next: WatchTimeEntry = {
-    key,
-    source,
-    id,
-    title,
-    sourceName,
-    cover: cleanString(input.cover),
-    year: cleanString(input.year),
-    episode,
-    totalEpisodes: cleanPositiveInt(input.totalEpisodes, 1) || 1,
-    totalTime: cleanPositiveInt(input.totalTime),
-    progressTime: cleanPositiveInt(input.progressTime),
-    watchSeconds: (previous?.watchSeconds || 0) + acceptedSeconds,
-    dailySeconds: {
-      ...(previous?.dailySeconds || {}),
-      [day]: (previous?.dailySeconds?.[day] || 0) + acceptedSeconds,
-    },
-    firstWatchedAt: previous?.firstWatchedAt || now,
-    lastWatchedAt: now,
-    lastReportedAt: now,
-  };
+    const next: WatchTimeEntry = {
+      key,
+      source,
+      id,
+      title,
+      sourceName,
+      cover: cleanString(input.cover),
+      year: cleanString(input.year),
+      episode,
+      totalEpisodes: cleanPositiveInt(input.totalEpisodes, 1) || 1,
+      totalTime: cleanPositiveInt(input.totalTime),
+      progressTime: cleanPositiveInt(input.progressTime),
+      watchSeconds: (previous?.watchSeconds || 0) + acceptedSeconds,
+      dailySeconds: {
+        ...(previous?.dailySeconds || {}),
+        [day]: (previous?.dailySeconds?.[day] || 0) + acceptedSeconds,
+      },
+      firstWatchedAt: previous?.firstWatchedAt || now,
+      lastWatchedAt: now,
+      lastReportedAt: now,
+    };
 
-  ledger.entries[key] = next;
-  ledger.updatedAt = now;
+    ledger.entries[key] = next;
+    ledger.updatedAt = now;
 
-  await db.setGlobalValue(
-    getWatchTimeUserKey(input.username),
-    JSON.stringify(ledger)
-  );
+    await db.setGlobalValue(
+      getWatchTimeUserKey(input.username),
+      JSON.stringify(ledger)
+    );
 
-  return {
-    acceptedSeconds,
-    totalWatchSeconds: next.watchSeconds,
-  };
+    return {
+      acceptedSeconds,
+      totalWatchSeconds: next.watchSeconds,
+    };
+  } finally {
+    release();
+  }
 }

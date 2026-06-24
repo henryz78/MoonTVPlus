@@ -166,6 +166,15 @@ describe('play stats helpers', () => {
       '站长片单',
       '沙丘',
     ]);
+    expect(
+      result.userRanking.find((item) => item.username === 'owner')
+    ).toMatchObject({
+      latestPlayRecord: {
+        title: '站长片单',
+        watchSeconds: 50,
+        saveTime: ONE_HOUR_AGO,
+      },
+    });
   });
 
   it('filters admin stats to self and ordinary users', async () => {

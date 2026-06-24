@@ -144,6 +144,10 @@ function latestRecordFrom(records: Record<string, PlayRecord>) {
   return Object.values(records).sort((a, b) => b.save_time - a.save_time)[0];
 }
 
+function latestWatchEntryFrom(entries: WatchTimeEntry[]) {
+  return [...entries].sort((a, b) => b.lastWatchedAt - a.lastWatchedAt)[0];
+}
+
 function isSameLocalDay(timestamp: number, now: number) {
   const current = new Date(now);
   const target = new Date(timestamp);
@@ -227,6 +231,7 @@ async function buildUserStats(user: UserActivityUser) {
   ]);
   const recordList = Object.values(records);
   const latestRecord = latestRecordFrom(records);
+  const latestWatchEntry = latestWatchEntryFrom(watchEntries);
   const totalWatchSeconds = watchEntries.reduce(
     (total, entry) => total + entry.watchSeconds,
     0
@@ -245,7 +250,9 @@ async function buildUserStats(user: UserActivityUser) {
     isOnline: Boolean(
       lastActiveAt && Date.now() - lastActiveAt <= ONLINE_THRESHOLD_MS
     ),
-    latestPlayRecord: latestRecord
+    latestPlayRecord: latestWatchEntry
+      ? watchEntryToRecordSummary(user.username, latestWatchEntry)
+      : latestRecord
       ? toRecordSummary(user.username, latestRecord)
       : null,
   };

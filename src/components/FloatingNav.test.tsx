@@ -72,6 +72,37 @@ describe('FloatingNav', () => {
     expect(screen.getByLabelText('私人影库')).toBeInTheDocument();
   });
 
+  it('renders the more panel as a centered horizontal capsule', () => {
+    render(
+      <SiteProvider
+        siteName='MoonTVPlus'
+        runtimeConfig={{
+          LIVE_ENABLED: true,
+          WEB_LIVE_ENABLED: true,
+          PRIVATE_LIBRARY_ENABLED: true,
+          ADVANCED_RECOMMENDATION_ENABLED: true,
+          CUSTOM_CATEGORIES: [{ name: '专题', type: 'movie', query: '经典' }],
+        }}
+      >
+        <FloatingNav />
+      </SiteProvider>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '更多' }));
+
+    const lists = screen.getAllByRole('list');
+    const overflowList = lists.find((list) =>
+      list.querySelector('[aria-label="电视直播"]')
+    );
+    expect(overflowList).toHaveClass('flex', 'overflow-x-auto', 'scrollbar-hide');
+    expect(overflowList).not.toHaveClass('grid');
+    expect(overflowList?.parentElement).toHaveClass(
+      'left-1/2',
+      '-translate-x-1/2',
+      'rounded-full'
+    );
+  });
+
   it('shows watch room from the runtime feature switch', () => {
     render(
       <SiteProvider

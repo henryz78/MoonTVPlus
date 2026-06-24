@@ -81,8 +81,8 @@ const FloatingNav = ({ activePath }: FloatingNavProps) => {
     >
       <div ref={navRef} className='pointer-events-auto relative'>
         {showMore && overflowItems.length > 0 && (
-          <div className='absolute bottom-full right-0 mb-2 rounded-[1.75rem] border border-white/55 bg-white/72 p-2 shadow-[0_18px_55px_rgba(15,23,42,0.22)] ring-1 ring-gray-900/5 backdrop-blur-2xl dark:border-gray-700/60 dark:bg-gray-950/72 dark:shadow-[0_18px_55px_rgba(0,0,0,0.55)] dark:ring-white/10'>
-            <ul className='grid grid-cols-3 gap-1'>
+          <div className='absolute bottom-full left-1/2 mb-2 max-w-[calc(100vw-1rem)] -translate-x-1/2 rounded-full border border-white/55 bg-white/72 p-2 shadow-[0_18px_55px_rgba(15,23,42,0.22)] ring-1 ring-gray-900/5 backdrop-blur-2xl dark:border-gray-700/60 dark:bg-gray-950/72 dark:shadow-[0_18px_55px_rgba(0,0,0,0.55)] dark:ring-white/10'>
+            <ul className='flex max-w-[calc(100vw-2rem)] gap-1 overflow-x-auto scrollbar-hide'>
               {overflowItems.map((item) => {
                 const active = isNavigationItemActive(currentActive, item.href);
                 const Icon = item.icon;
@@ -96,7 +96,7 @@ const FloatingNav = ({ activePath }: FloatingNavProps) => {
                       title={item.label}
                       data-active={active}
                       onClick={() => setShowMore(false)}
-                      className='group flex h-11 w-11 items-center justify-center rounded-full text-gray-500 transition-all duration-200 hover:bg-gray-900/5 hover:text-green-600 data-[active=true]:bg-green-500 data-[active=true]:text-white data-[active=true]:shadow-lg data-[active=true]:shadow-green-500/25 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-green-300 dark:data-[active=true]:bg-green-500 dark:data-[active=true]:text-gray-950'
+                      className='group flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-gray-500 transition-all duration-200 hover:bg-gray-900/5 hover:text-green-600 data-[active=true]:bg-green-500 data-[active=true]:text-white data-[active=true]:shadow-lg data-[active=true]:shadow-green-500/25 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-green-300 dark:data-[active=true]:bg-green-500 dark:data-[active=true]:text-gray-950'
                     >
                       <Icon className='h-5 w-5 transition-transform duration-200 group-hover:scale-105' />
                       <span className='sr-only'>{item.label}</span>
@@ -137,11 +137,13 @@ const FloatingNav = ({ activePath }: FloatingNavProps) => {
                 aria-label='更多'
                 title='更多'
                 aria-expanded={showMore}
-                data-active={moreButtonActive}
+                data-active={moreButtonActive || showMore}
                 onClick={() => setShowMore((value) => !value)}
                 className='group flex h-10 w-10 items-center justify-center rounded-full text-gray-500 transition-all duration-200 hover:bg-gray-900/5 hover:text-green-600 data-[active=true]:bg-green-500 data-[active=true]:text-white data-[active=true]:shadow-lg data-[active=true]:shadow-green-500/25 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-green-300 dark:data-[active=true]:bg-green-500 dark:data-[active=true]:text-gray-950 sm:h-11 sm:w-11'
               >
-                <MoreHorizontal className='h-5 w-5 transition-transform duration-200 group-hover:scale-105' />
+                <MoreHorizontal
+                  className={`h-5 w-5 transition-transform duration-200 group-hover:scale-105 ${showMore ? 'rotate-90' : ''}`}
+                />
                 <span className='sr-only'>更多</span>
               </button>
             </li>

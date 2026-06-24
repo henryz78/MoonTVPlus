@@ -22,7 +22,32 @@ describe('watch time ledger', () => {
     (db.getGlobalValue as jest.Mock).mockResolvedValue(null);
   });
 
-  it('clamps a seeked progress report to the real report window', async () => {
+  it('accepts a first report up to the startup catch-up window', async () => {
+    const result = await recordWatchTime(
+      {
+        username: 'alice',
+        source: 'source',
+        id: 'movie',
+        title: '沙丘',
+        sourceName: '测试源',
+        episode: 1,
+        totalEpisodes: 1,
+        totalTime: 7200,
+        progressTime: 300,
+        deltaSeconds: 300,
+      },
+      NOW
+    );
+
+    expect(result.acceptedSeconds).toBe(300);
+    expect(result.totalWatchSeconds).toBe(300);
+    expect(db.setGlobalValue).toHaveBeenCalledWith(
+      getWatchTimeUserKey('alice'),
+      expect.stringContaining('"watchSeconds":300')
+    );
+  });
+
+  it('caps a huge first report to the startup catch-up window', async () => {
     const result = await recordWatchTime(
       {
         username: 'alice',
@@ -39,12 +64,8 @@ describe('watch time ledger', () => {
       NOW
     );
 
-    expect(result.acceptedSeconds).toBe(60);
-    expect(result.totalWatchSeconds).toBe(60);
-    expect(db.setGlobalValue).toHaveBeenCalledWith(
-      getWatchTimeUserKey('alice'),
-      expect.stringContaining('"watchSeconds":60')
-    );
+    expect(result.acceptedSeconds).toBe(300);
+    expect(result.totalWatchSeconds).toBe(300);
   });
 
   it('limits repeated reports by elapsed server time', async () => {

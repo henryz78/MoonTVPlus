@@ -2,6 +2,7 @@ import { db } from './db';
 import { getWatchTimeUserKey } from './watch-time-keys';
 
 const WATCH_TIME_VERSION = 1;
+const INITIAL_REPORT_MAX_SECONDS = 5 * 60;
 const MAX_REPORT_DELTA_SECONDS = 60;
 const REPORT_GRACE_SECONDS = 5;
 
@@ -168,15 +169,18 @@ function allowedSeconds(
   const requested = cleanPositiveInt(requestedSeconds);
   if (requested <= 0) return 0;
 
+  const reportMaxSeconds = previous
+    ? MAX_REPORT_DELTA_SECONDS
+    : INITIAL_REPORT_MAX_SECONDS;
   const elapsedBound = previous?.lastReportedAt
     ? Math.max(
         0,
         Math.floor((now - previous.lastReportedAt) / 1000) +
           REPORT_GRACE_SECONDS
       )
-    : MAX_REPORT_DELTA_SECONDS;
+    : INITIAL_REPORT_MAX_SECONDS;
 
-  return Math.min(requested, MAX_REPORT_DELTA_SECONDS, elapsedBound);
+  return Math.min(requested, reportMaxSeconds, elapsedBound);
 }
 
 export async function getWatchTimeLedger(username: string) {

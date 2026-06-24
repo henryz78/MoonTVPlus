@@ -56,6 +56,7 @@ import { loadTVPlayerUpDownAction } from '@/lib/tv-preferences';
 import { SearchResult } from '@/lib/types';
 import {
   RealWatchTimeTracker,
+  getUnacceptedWatchSeconds,
   reportWatchTime,
   WATCH_TIME_REPORT_INTERVAL_MS,
 } from '@/lib/watch-time.client';
@@ -808,10 +809,20 @@ function TVPlayClient() {
       totalTime: Math.floor(timeRef.current.duration || 0),
       progressTime: Math.floor(timeRef.current.current || 0),
       deltaSeconds,
-    }).catch((error) => {
-      watchTimeBufferedSecondsRef.current += deltaSeconds;
-      console.warn('[WatchTime] TV 上报观看时长失败:', error);
-    });
+    })
+      .then((result) => {
+        const unacceptedSeconds = getUnacceptedWatchSeconds(
+          deltaSeconds,
+          result?.acceptedSeconds
+        );
+        if (unacceptedSeconds > 0) {
+          watchTimeBufferedSecondsRef.current += unacceptedSeconds;
+        }
+      })
+      .catch((error) => {
+        watchTimeBufferedSecondsRef.current += deltaSeconds;
+        console.warn('[WatchTime] TV 上报观看时长失败:', error);
+      });
   };
 
   const onTime = useCallback(

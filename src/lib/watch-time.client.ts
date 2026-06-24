@@ -71,6 +71,22 @@ export class RealWatchTimeTracker {
   }
 }
 
+export interface WatchTimeReportResponse {
+  acceptedSeconds?: number;
+  totalWatchSeconds?: number;
+}
+
+export function getUnacceptedWatchSeconds(
+  deltaSeconds: number,
+  acceptedSeconds: number | undefined
+) {
+  if (!Number.isFinite(acceptedSeconds)) return 0;
+
+  const requested = Math.max(0, Math.floor(deltaSeconds));
+  const accepted = Math.max(0, Math.floor(acceptedSeconds || 0));
+  return Math.max(0, requested - accepted);
+}
+
 export async function reportWatchTime(input: {
   source: string;
   id: string;
@@ -83,12 +99,29 @@ export async function reportWatchTime(input: {
   totalTime: number;
   progressTime: number;
   deltaSeconds: number;
-}) {
-  if (input.deltaSeconds <= 0) return;
+}): Promise<WatchTimeReportResponse | null> {
+  if (input.deltaSeconds <= 0) return null;
 
-  await fetchWithAuth('/api/watch-time', {
+  const response = await fetchWithAuth('/api/watch-time', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   });
+
+  if (!response.ok) {
+    let message = `Watch time report failed: ${response.status}`;
+    try {
+      const body = await response.json();
+      if (body?.error) message = body.error;
+    } catch {
+      // Keep the status-based message when the response body is not JSON.
+    }
+    throw new Error(message);
+  }
+
+  try {
+    return (await response.json()) as WatchTimeReportResponse;
+  } catch {
+    return null;
+  }
 }

@@ -56,7 +56,12 @@ import {
   rememberEpisodeProgressContentKeyForPlayRecord,
   saveLocalEpisodeProgress,
 } from '@/lib/episode-progress';
-import { RealWatchTimeTracker, reportWatchTime, WATCH_TIME_REPORT_INTERVAL_MS } from '@/lib/watch-time.client';
+import {
+  RealWatchTimeTracker,
+  getUnacceptedWatchSeconds,
+  reportWatchTime,
+  WATCH_TIME_REPORT_INTERVAL_MS,
+} from '@/lib/watch-time.client';
 import { isNetdiskSource, normalizeNetdiskSource } from '@/lib/netdisk/source';
 import {
   getRecommendationCache,
@@ -6274,10 +6279,20 @@ function PlayPageClient() {
       totalTime: Math.floor(artPlayerRef.current?.duration || 0),
       progressTime: Math.floor(artPlayerRef.current?.currentTime || 0),
       deltaSeconds,
-    }).catch((error) => {
-      watchTimeBufferedSecondsRef.current += deltaSeconds;
-      console.warn('[WatchTime] 上报观看时长失败:', error);
-    });
+    })
+      .then((result) => {
+        const unacceptedSeconds = getUnacceptedWatchSeconds(
+          deltaSeconds,
+          result?.acceptedSeconds
+        );
+        if (unacceptedSeconds > 0) {
+          watchTimeBufferedSecondsRef.current += unacceptedSeconds;
+        }
+      })
+      .catch((error) => {
+        watchTimeBufferedSecondsRef.current += deltaSeconds;
+        console.warn('[WatchTime] 上报观看时长失败:', error);
+      });
   };
 
   // 保存播放进度

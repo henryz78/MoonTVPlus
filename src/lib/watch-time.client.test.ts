@@ -1,5 +1,9 @@
 import { fetchWithAuth } from './db.client';
-import { RealWatchTimeTracker, reportWatchTime } from './watch-time.client';
+import {
+  RealWatchTimeTracker,
+  getUnacceptedWatchSeconds,
+  reportWatchTime,
+} from './watch-time.client';
 
 jest.mock('./db.client', () => ({
   fetchWithAuth: jest.fn(),
@@ -149,5 +153,35 @@ describe('reportWatchTime', () => {
         deltaSeconds: 15,
       }),
     });
+  });
+
+  it('throws when the watch-time API rejects the report', async () => {
+    (fetchWithAuth as jest.Mock).mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: async () => ({ error: 'Internal Server Error' }),
+    });
+
+    await expect(
+      reportWatchTime({
+        source: 'source',
+        id: 'movie',
+        title: '沙丘',
+        sourceName: '测试源',
+        episode: 1,
+        totalEpisodes: 1,
+        totalTime: 7200,
+        progressTime: 30,
+        deltaSeconds: 15,
+      })
+    ).rejects.toThrow('Internal Server Error');
+  });
+});
+
+describe('getUnacceptedWatchSeconds', () => {
+  it('keeps the seconds that the server did not accept', () => {
+    expect(getUnacceptedWatchSeconds(45, 20)).toBe(25);
+    expect(getUnacceptedWatchSeconds(45, 45)).toBe(0);
+    expect(getUnacceptedWatchSeconds(45, undefined)).toBe(0);
   });
 });

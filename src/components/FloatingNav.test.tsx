@@ -72,7 +72,7 @@ describe('FloatingNav', () => {
     expect(screen.getByLabelText('私人影库')).toBeInTheDocument();
   });
 
-  it('renders the more panel as a centered horizontal capsule', () => {
+  it('renders the more panel as a horizontal capsule anchored above the more button', () => {
     render(
       <SiteProvider
         siteName='MoonTVPlus'
@@ -97,10 +97,29 @@ describe('FloatingNav', () => {
     expect(overflowList).toHaveClass('flex', 'overflow-x-auto', 'scrollbar-hide');
     expect(overflowList).not.toHaveClass('grid');
     expect(overflowList?.parentElement).toHaveClass(
-      'left-1/2',
-      '-translate-x-1/2',
+      'right-7',
+      'translate-x-1/2',
       'rounded-full'
     );
+  });
+
+  it('keeps the more button inactive when it is only opened from a primary page', () => {
+    render(
+      <SiteProvider
+        siteName='MoonTVPlus'
+        runtimeConfig={{
+          LIVE_ENABLED: true,
+        }}
+      >
+        <FloatingNav />
+      </SiteProvider>
+    );
+
+    const moreButton = screen.getByRole('button', { name: '更多' });
+
+    expect(moreButton).toHaveAttribute('data-active', 'false');
+    fireEvent.click(moreButton);
+    expect(moreButton).toHaveAttribute('data-active', 'false');
   });
 
   it('shows watch room from the runtime feature switch', () => {

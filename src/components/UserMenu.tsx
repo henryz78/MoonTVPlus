@@ -44,10 +44,10 @@ import { createPortal } from 'react-dom';
 import { getAuthInfoFromBrowserCookie } from '@/lib/auth';
 import { clearAllDanmakuCache, getDanmakuCacheStats } from '@/lib/danmaku/api';
 import {
-  HOME_BANNER_HEIGHT_STORAGE_KEY,
   type HomeBannerHeightScale,
   getDefaultHomeBannerHeightScale,
   getSavedHomeBannerHeightScale,
+  HOME_BANNER_HEIGHT_STORAGE_KEY,
 } from '@/lib/home-banner';
 import { clearBangumiImageFallbackCache } from '@/lib/utils';
 import { CURRENT_VERSION } from '@/lib/version';
@@ -247,7 +247,7 @@ export const UserMenu: React.FC = () => {
   const [maxConcurrentDownloads, setMaxConcurrentDownloads] = useState(6);
   const [downloadThreadsPerTask, setDownloadThreadsPerTask] = useState(6);
   const [downloadSegmentTimeout, setDownloadSegmentTimeout] = useState(30000);
-  const [downloadMode, setDownloadMode] = useState<'browser' | 'filesystem'>(
+  const [downloadMode, setDownloadMode] = useState<'browser' | 'filesystem' | 'indexeddb'>(
     'browser'
   );
   const [filesystemSavePath, setFilesystemSavePath] = useState<string>('');
@@ -942,7 +942,8 @@ export const UserMenu: React.FC = () => {
       const savedDownloadMode = localStorage.getItem('downloadMode');
       if (
         savedDownloadMode === 'browser' ||
-        savedDownloadMode === 'filesystem'
+        savedDownloadMode === 'filesystem' ||
+        savedDownloadMode === 'indexeddb'
       ) {
         setDownloadMode(savedDownloadMode);
       }
@@ -1498,12 +1499,25 @@ export const UserMenu: React.FC = () => {
     (rawValue: string) => {
       try {
         const url = new URL(rawValue, window.location.origin);
+
+        const isLocalRemoteUrl =
+          (url.protocol === 'http:' || url.protocol === 'https:') &&
+          url.searchParams.has('token') &&
+          (url.pathname === '/remote' || url.pathname.endsWith('/remote'));
+
+        if (isLocalRemoteUrl) {
+          setTvQrScannerStatus('识别成功，正在打开局域网遥控器...');
+          stopTvQrScanner();
+          window.location.href = url.href;
+          return true;
+        }
+
         if (
           url.origin !== window.location.origin ||
           url.pathname !== '/qr-login'
         ) {
           setTvQrScannerError(
-            '未识别到本站电视登录二维码，请扫描电视屏幕上的二维码。'
+            '未识别到电视登录二维码或局域网遥控二维码，请扫描电视屏幕上的二维码。'
           );
           return false;
         }
@@ -1519,7 +1533,9 @@ export const UserMenu: React.FC = () => {
         window.location.href = `/qr-login?token=${encodeURIComponent(token)}`;
         return true;
       } catch {
-        setTvQrScannerError('二维码内容无效，请扫描电视端显示的登录二维码。');
+        setTvQrScannerError(
+          '二维码内容无效，请扫描电视端显示的登录二维码或局域网遥控二维码。'
+        );
         return false;
       }
     },
@@ -1561,7 +1577,7 @@ export const UserMenu: React.FC = () => {
       await tvQrVideoRef.current.play();
 
       const detector = new BarcodeDetectorCtor({ formats: ['qr_code'] });
-      setTvQrScannerStatus('请将电视屏幕上的登录二维码放入取景框');
+      setTvQrScannerStatus('请将电视屏幕上的登录二维码或局域网遥控二维码放入取景框');
 
       const scan = async () => {
         if (tvQrScanStopRef.current || !tvQrVideoRef.current) return;
@@ -1768,7 +1784,7 @@ export const UserMenu: React.FC = () => {
     return seconds > 0 ? `${minutes}分${seconds}秒` : `${minutes}分钟`;
   };
 
-  const handleDownloadModeChange = (mode: 'browser' | 'filesystem') => {
+  const handleDownloadModeChange = (mode: 'browser' | 'filesystem' | 'indexeddb') => {
     // 如果选择 filesystem 模式，先检测浏览器是否支持
     if (
       mode === 'filesystem' &&
@@ -3902,6 +3918,21 @@ export const UserMenu: React.FC = () => {
                           File System API（保存分片到本地目录）
                         </span>
                       </label>
+                      <label className='flex items-start gap-2 cursor-pointer'>
+                        <input
+                          type='radio'
+                          name='downloadMode'
+                          value='indexeddb'
+                          checked={downloadMode === 'indexeddb'}
+                          onChange={() =>
+                            handleDownloadModeChange('indexeddb')
+                          }
+                          className='mt-0.5 w-4 h-4 text-green-500'
+                        />
+                        <span className='text-sm text-gray-700 dark:text-gray-300'>
+                          IndexedDB 缓存（应用内离线播放）
+                        </span>
+                      </label>
                     </div>
 
                     {/* 保存路径选择（仅在 filesystem 模式显示） */}
@@ -4639,11 +4670,9 @@ export const UserMenu: React.FC = () => {
                     <Smartphone className='h-4 w-4' />
                     手机相机扫码
                   </div>
-                  <h3 className='mt-3 text-2xl font-black'>
-                    扫描电视登录二维码
-                  </h3>
+                  <h3 className='mt-3 text-2xl font-black'>扫描电视二维码</h3>
                   <p className='mt-1 text-sm text-white/75'>
-                    识别成功后会进入手机确认登录页
+                    支持扫码登录，也支持打开局域网遥控器
                   </p>
                 </div>
                 <button
@@ -4955,7 +4984,7 @@ export const UserMenu: React.FC = () => {
                   </div>
                   <p className='mt-5 text-sm leading-6 text-slate-600 dark:text-slate-400'>
                     {tvModeEnabled
-                      ? '电视端打开 /tv 后会显示二维码；手机在这里打开相机扫描并确认登录。'
+                      ? '电视端打开 /tv 后可扫码登录；在电视端“我的”页也可扫描局域网遥控二维码。'
                       : '当前部署未开启 TV 模式，/tv 页面和 Web 电视遥控不可用。'}
                   </p>
                   {!tvModeEnabled && (
@@ -4971,7 +5000,7 @@ export const UserMenu: React.FC = () => {
                       disabled={!tvModeEnabled}
                       className='inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-rose-600 px-4 py-3 text-sm font-black text-white transition hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/70 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 dark:disabled:bg-white/10 dark:disabled:text-slate-500'
                     >
-                      打开相机扫码登录
+                      打开相机扫码
                       <Smartphone className='h-4 w-4' />
                     </button>
                     <button

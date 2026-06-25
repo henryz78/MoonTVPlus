@@ -336,6 +336,7 @@ async function getInitConfig(
       MagnetMikanReverseProxy: '',
       MagnetDmhyReverseProxy: '',
       MagnetAcgripReverseProxy: '',
+      MagnetNyaaReverseProxy: '',
       // 评论功能开关
       EnableComments: false,
       EnableRegistration: false,
@@ -549,6 +550,7 @@ export function configSelfCheck(adminConfig: AdminConfig): AdminConfig {
       MagnetMikanReverseProxy: '',
       MagnetDmhyReverseProxy: '',
       MagnetAcgripReverseProxy: '',
+      MagnetNyaaReverseProxy: '',
       EnableComments: false,
       EnableRegistration: false,
       RequireRegistrationInviteCode: false,
@@ -665,6 +667,9 @@ export function configSelfCheck(adminConfig: AdminConfig): AdminConfig {
   }
   if (adminConfig.SiteConfig.MagnetAcgripReverseProxy === undefined) {
     adminConfig.SiteConfig.MagnetAcgripReverseProxy = '';
+  }
+  if (adminConfig.SiteConfig.MagnetNyaaReverseProxy === undefined) {
+    adminConfig.SiteConfig.MagnetNyaaReverseProxy = '';
   }
   if (!adminConfig.UserConfig) {
     adminConfig.UserConfig = { Users: [] };
@@ -817,6 +822,7 @@ export function configSelfCheck(adminConfig: AdminConfig): AdminConfig {
             UserId: oldConfig.UserId,
             AuthToken: oldConfig.AuthToken,
             Libraries: oldConfig.Libraries,
+            embyAuthorizationHeader: oldConfig.embyAuthorizationHeader,
             LastSyncTime: oldConfig.LastSyncTime,
             ItemCount: oldConfig.ItemCount,
             isDefault: true,

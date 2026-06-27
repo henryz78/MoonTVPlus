@@ -1,6 +1,6 @@
-const BANNER_CACHE_VERSION = 'v2';
+const BANNER_CACHE_VERSION = 'v3';
 
-interface DoubanBannerRecommendUrlOptions {
+interface DoubanHotMoviesUrlOptions {
   limit?: number;
   start?: number;
 }
@@ -9,19 +9,15 @@ export function getBannerLocalStorageKey(source: string): string {
   return `banner_trending_cache_${BANNER_CACHE_VERSION}_${source}`;
 }
 
-export function buildDoubanBannerRecommendUrl({
-  limit = 10,
+export function buildDoubanHotMoviesUrl({
+  limit = 15,
   start = 0,
-}: DoubanBannerRecommendUrlOptions = {}): string {
+}: DoubanHotMoviesUrlOptions = {}): string {
   const params = new URLSearchParams();
-  params.append('refresh', '0');
   params.append('start', start.toString());
-  params.append('count', limit.toString());
-  params.append('selected_categories', JSON.stringify({ 类型: '' }));
-  params.append('uncollect', 'false');
-  params.append('score_range', '0,10');
-  params.append('tags', '');
-  params.append('sort', 'S');
+  params.append('limit', limit.toString());
+  params.append('category', '热门');
+  params.append('type', '全部');
 
-  return `https://m.douban.com/rexxar/api/v2/movie/recommend?${params.toString()}`;
+  return `https://m.douban.com/rexxar/api/v2/subject/recent_hot/movie?${params.toString()}`;
 }

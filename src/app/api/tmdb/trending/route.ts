@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 
 import { getConfig } from '@/lib/config';
 import { fetchDoubanData } from '@/lib/douban';
-import { buildDoubanBannerRecommendUrl } from '@/lib/home-banner-source';
+import { buildDoubanHotMoviesUrl } from '@/lib/home-banner-source';
 import { getTMDBTrendingContent, getTMDBVideos } from '@/lib/tmdb.client';
 
 // 缓存配置 - 服务器内存缓存3小时
@@ -275,8 +275,8 @@ async function getDoubanBannerContent(): Promise<{
   list: any[];
 }> {
   try {
-    const bannerMoviesUrl = buildDoubanBannerRecommendUrl({
-      limit: 10,
+    const bannerMoviesUrl = buildDoubanHotMoviesUrl({
+      limit: 15,
       start: 0,
     });
 

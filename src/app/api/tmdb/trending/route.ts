@@ -4,7 +4,10 @@ import { NextResponse } from 'next/server';
 
 import { getConfig } from '@/lib/config';
 import { fetchDoubanData } from '@/lib/douban';
-import { buildDoubanHotMoviesUrl } from '@/lib/home-banner-source';
+import {
+  buildDoubanHotMoviesUrl,
+  pickDailyBannerItems,
+} from '@/lib/home-banner-source';
 import { getTMDBTrendingContent, getTMDBVideos } from '@/lib/tmdb.client';
 
 // 缓存配置 - 服务器内存缓存3小时
@@ -276,7 +279,7 @@ async function getDoubanBannerContent(): Promise<{
 }> {
   try {
     const bannerMoviesUrl = buildDoubanHotMoviesUrl({
-      limit: 15,
+      limit: 20,
       start: 0,
     });
 
@@ -309,11 +312,12 @@ async function getDoubanBannerContent(): Promise<{
 
     const bannerMovies = bannerMoviesData.items
       .filter((movie) => !movie.type || movie.type === 'movie')
-      .slice(0, 5);
+      .slice(0, 20);
+    const dailyBannerMovies = pickDailyBannerItems(bannerMovies);
 
     // 为每个电影获取详情信息
     const bannerItems = await Promise.all(
-      bannerMovies.map(async (movie) => {
+      dailyBannerMovies.map(async (movie) => {
         try {
           const detailUrl = `https://m.douban.com/rexxar/api/v2/subject/${movie.id}`;
 

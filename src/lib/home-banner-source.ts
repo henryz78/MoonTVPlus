@@ -10,7 +10,7 @@ export function getBannerLocalStorageKey(source: string): string {
 }
 
 export function buildDoubanHotMoviesUrl({
-  limit = 15,
+  limit = 20,
   start = 0,
 }: DoubanHotMoviesUrlOptions = {}): string {
   const params = new URLSearchParams();
@@ -20,4 +20,15 @@ export function buildDoubanHotMoviesUrl({
   params.append('type', '全部');
 
   return `https://m.douban.com/rexxar/api/v2/subject/recent_hot/movie?${params.toString()}`;
+}
+
+export function pickDailyBannerItems<T>(
+  items: T[],
+  date = new Date(),
+  limit = 5
+): T[] {
+  if (items.length <= limit) return items.slice(0, limit);
+
+  const offset = (date.getDate() * 2 - 1) % items.length;
+  return [...items.slice(offset), ...items.slice(0, offset)].slice(0, limit);
 }

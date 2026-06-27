@@ -1,6 +1,7 @@
 import {
   buildDoubanHotMoviesUrl,
   getBannerLocalStorageKey,
+  pickDailyBannerItems,
 } from './home-banner-source';
 
 describe('home banner source selection', () => {
@@ -18,5 +19,16 @@ describe('home banner source selection', () => {
     expect(getBannerLocalStorageKey('Douban')).toBe(
       'banner_trending_cache_v3_Douban'
     );
+  });
+
+  it('rotates banner picks by local date', () => {
+    const items = Array.from({ length: 20 }, (_, index) => index + 1);
+
+    expect(
+      pickDailyBannerItems(items, new Date('2026-06-01T08:00:00Z'))
+    ).toEqual([2, 3, 4, 5, 6]);
+    expect(
+      pickDailyBannerItems(items, new Date('2026-06-02T08:00:00Z'))
+    ).toEqual([4, 5, 6, 7, 8]);
   });
 });

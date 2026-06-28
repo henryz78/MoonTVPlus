@@ -1,4 +1,4 @@
-const BANNER_CACHE_VERSION = 'v3';
+const BANNER_CACHE_VERSION = 'v4';
 
 interface DoubanHotMoviesUrlOptions {
   limit?: number;
@@ -29,6 +29,28 @@ export function pickDailyBannerItems<T>(
 ): T[] {
   if (items.length <= limit) return items.slice(0, limit);
 
-  const offset = (date.getDate() * 2 - 1) % items.length;
-  return [...items.slice(offset), ...items.slice(0, offset)].slice(0, limit);
+  const random = createSeededRandom(
+    date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate()
+  );
+  const shuffled = [...items];
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const targetIndex = Math.floor(random() * (index + 1));
+    [shuffled[index], shuffled[targetIndex]] = [
+      shuffled[targetIndex],
+      shuffled[index],
+    ];
+  }
+
+  return shuffled.slice(0, limit);
+}
+
+function createSeededRandom(seed: number) {
+  let value = seed % 2147483647;
+  if (value <= 0) value += 2147483646;
+
+  return () => {
+    value = (value * 16807) % 2147483647;
+    return (value - 1) / 2147483646;
+  };
 }
